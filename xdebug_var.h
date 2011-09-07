@@ -49,6 +49,8 @@ xdebug_var_export_options* xdebug_var_export_options_from_ini(TSRMLS_D);
 xdebug_var_export_options* xdebug_var_get_nolimit_options(TSRMLS_D);
 
 void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
+void xdebug_var_export_sqlite(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
+void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
 #ifndef PHP_WIN32
 void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
 #endif
@@ -60,6 +62,7 @@ char* xdebug_xmlize(char *string, int len, int *newlen);
 char* xdebug_error_type(int type);
 zval *xdebug_get_zval(zend_execute_data *zdata, int node_type, XDEBUG_ZNODE *node, temp_variable *Ts, int *is_var);
 char* xdebug_get_zval_value(zval *val, int debug_zval, xdebug_var_export_options *options);
+char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options);
 #ifndef PHP_WIN32
 char* xdebug_get_zval_value_ansi(zval *val, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
 #endif

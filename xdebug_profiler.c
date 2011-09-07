@@ -42,6 +42,11 @@ void xdebug_profile_aggr_call_entry_dtor(void *elem)
 		xdfree(xae->function);
 	}
 }
+void xdebug_odb_call_entry_dtor(void *elem)
+{
+	zval *struc = (zval*)elem;
+	Z_DELREF_P(struc);
+}
 
 void xdebug_profile_call_entry_dtor(void *dummy, void *elem)
 {

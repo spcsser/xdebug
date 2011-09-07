@@ -33,6 +33,7 @@
 #include "xdebug_hash.h"
 #include "xdebug_llist.h"
 #include "xdebug_code_coverage.h"
+#include <sqlite3.h>
 
 #if PHP_VERSION_ID >= 50399
 # define OUTPUTBUFFERING 0
@@ -179,6 +180,7 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	void        (*orig_set_time_limit_func)(INTERNAL_FUNCTION_PARAMETERS);
 
 	FILE         *trace_file;
+	FILE		 *tracedata_file;
 	zend_bool     do_trace;
 	zend_bool     auto_trace;
 	zend_bool     trace_enable_trigger;
@@ -187,6 +189,7 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	long          trace_options;
 	long          trace_format;
 	char         *tracefile_name;
+	char		 *tracedatafile_name;
 	char         *last_exception_trace;
 	char         *last_eval_statement;
 
@@ -253,6 +256,9 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	unsigned int  breakpoint_count;
 	unsigned int  no_exec;
 
+	/* odb collection */
+	HashTable     known_values;
+
 	/* profiler settings */
 	zend_bool     profiler_enable;
 	char         *profiler_output_dir;
@@ -276,6 +282,8 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	int stdout_redirected;
 	int stderr_redirected;
 	int stdin_redirected;
+
+	sqlite3 **trace_db;
 
 	/* aggregate profiling */
 	HashTable  aggr_calls;

@@ -520,6 +520,7 @@ PHP_MINIT_FUNCTION(xdebug)
 
 	/* initialize aggregate call information hash */
 	zend_hash_init_ex(&XG(aggr_calls), 50, NULL, (dtor_func_t) xdebug_profile_aggr_call_entry_dtor, 1, 0);
+	zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
 
 	/* Redirect compile and execute functions to our own */
 	old_compile_file = zend_compile_file;
@@ -655,6 +656,7 @@ PHP_MSHUTDOWN_FUNCTION(xdebug)
 	zend_error_cb = xdebug_old_error_cb;
 
 	zend_hash_destroy(&XG(aggr_calls));
+	zend_hash_destroy(&XG(known_values));
 
 #ifdef ZTS
 	ts_free_id(xdebug_globals_id);
@@ -1260,6 +1262,7 @@ void xdebug_execute(zend_op_array *op_array TSRMLS_DC)
 	fse = xdebug_add_stack_frame(edata, op_array, XDEBUG_EXTERNAL TSRMLS_CC);
 
 	function_nr = XG(function_count);
+	fse->fn_nr=function_nr;
 	xdebug_trace_function_begin(fse, function_nr TSRMLS_CC);
 
 	fse->symbol_table = EG(active_symbol_table);
@@ -1364,6 +1367,7 @@ void xdebug_execute_internal(zend_execute_data *current_execute_data, int return
 	fse = xdebug_add_stack_frame(edata, edata->op_array, XDEBUG_INTERNAL TSRMLS_CC);
 
 	function_nr = XG(function_count);
+	fse->fn_nr=function_nr;
 	xdebug_trace_function_begin(fse, function_nr TSRMLS_CC);
 
 	/* Check for entry breakpoints */
@@ -1723,6 +1727,7 @@ PHP_FUNCTION(xdebug_clear_aggr_profiling_data)
 	}
 
 	zend_hash_clean(&XG(aggr_calls));
+	zend_hash_clean(&XG(known_values));
 
 	RETURN_TRUE;
 }

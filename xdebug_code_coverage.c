@@ -1,19 +1,19 @@
 /*
-   +----------------------------------------------------------------------+
-   | Xdebug                                                               |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
-   +----------------------------------------------------------------------+
-   | This source file is subject to version 1.0 of the Xdebug license,    |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available at through the world-wide-web at                           |
-   | http://xdebug.derickrethans.nl/license.php                           |
-   | If you did not receive a copy of the Xdebug license and are unable   |
-   | to obtain it through the world-wide-web, please send a note to       |
-   | xdebug@derickrethans.nl so we can mail you a copy immediately.       |
-   +----------------------------------------------------------------------+
-   | Authors: Derick Rethans <derick@xdebug.org>                          |
-   +----------------------------------------------------------------------+
+ +----------------------------------------------------------------------+
+ | Xdebug                                                               |
+ +----------------------------------------------------------------------+
+ | Copyright (c) 2002-2011 Derick Rethans                               |
+ +----------------------------------------------------------------------+
+ | This source file is subject to version 1.0 of the Xdebug license,    |
+ | that is bundled with this package in the file LICENSE, and is        |
+ | available at through the world-wide-web at                           |
+ | http://xdebug.derickrethans.nl/license.php                           |
+ | If you did not receive a copy of the Xdebug license and are unable   |
+ | to obtain it through the world-wide-web, please send a note to       |
+ | xdebug@derickrethans.nl so we can mail you a copy immediately.       |
+ +----------------------------------------------------------------------+
+ | Authors: Derick Rethans <derick@xdebug.org>                          |
+ +----------------------------------------------------------------------+
  */
 
 #include "php_xdebug.h"
@@ -24,17 +24,15 @@
 #include "xdebug_compat.h"
 #include "xdebug_tracing.h"
 
-extern ZEND_DECLARE_MODULE_GLOBALS(xdebug);
+extern ZEND_DECLARE_MODULE_GLOBALS( xdebug);
 
-void xdebug_coverage_line_dtor(void *data)
-{
+void xdebug_coverage_line_dtor(void *data) {
 	xdebug_coverage_line *line = (xdebug_coverage_line *) data;
 
 	xdfree(line);
 }
 
-void xdebug_coverage_file_dtor(void *data)
-{
+void xdebug_coverage_file_dtor(void *data) {
 	xdebug_coverage_file *file = (xdebug_coverage_file *) data;
 
 	xdebug_hash_destroy(file->lines);
@@ -48,13 +46,11 @@ void xdebug_coverage_file_dtor(void *data)
 		return xdebug_common_override_handler(ZEND_OPCODE_HANDLER_ARGS_PASSTHRU); \
 	}
 
-
-int xdebug_common_override_handler(ZEND_OPCODE_HANDLER_ARGS)
-{
+int xdebug_common_override_handler( ZEND_OPCODE_HANDLER_ARGS) {
 	if (XG(do_code_coverage)) {
 		zend_op *cur_opcode;
-		int      lineno;
-		char    *file;
+		int lineno;
+		char *file;
 
 		zend_op_array *op_array = execute_data->op_array;
 
@@ -63,20 +59,20 @@ int xdebug_common_override_handler(ZEND_OPCODE_HANDLER_ARGS)
 
 		file = op_array->filename;
 
-		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
-	}
-	return ZEND_USER_OPCODE_DISPATCH;
+xdebug_count_line	(file, lineno, 0, 0 TSRMLS_CC);
+}
+return ZEND_USER_OPCODE_DISPATCH;
 }
 
 static char *xdebug_find_var_name(zend_execute_data *execute_data TSRMLS_DC)
 {
-	zend_op       *cur_opcode, *next_opcode, *prev_opcode = NULL, *opcode_ptr;
-	zval          *dimval;
-	int            is_var, cv_len;
+	zend_op *cur_opcode, *next_opcode, *prev_opcode = NULL, *opcode_ptr;
+	zval *dimval;
+	int is_var, cv_len;
 	zend_op_array *op_array = execute_data->op_array;
-	xdebug_str     name = {0, 0, NULL};
-	int            gohungfound = 0, is_static = 0;
-	char          *zval_value = NULL;
+	xdebug_str name = {0, 0, NULL};
+	int gohungfound = 0, is_static = 0;
+	char *zval_value = NULL;
 	xdebug_var_export_options *options;
 
 	cur_opcode = *EG(opline_ptr);
@@ -168,7 +164,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data TSRMLS_DC)
 				xdfree(zval_value);
 				zval_value = NULL;
 			}
-		} while (opcode_ptr->opcode == ZEND_FETCH_DIM_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_W);
+		}while (opcode_ptr->opcode == ZEND_FETCH_DIM_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_W);
 	}
 
 	if (cur_opcode->opcode == ZEND_ASSIGN_OBJ) {
@@ -195,16 +191,16 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data TSRMLS_DC)
 	return name.d;
 }
 
-static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HANDLER_ARGS)
-{
-	char    *file;
+static int xdebug_common_assign_dim_handler(char *op, int do_cc,
+		ZEND_OPCODE_HANDLER_ARGS) {
+	char *file;
 	zend_op_array *op_array = execute_data->op_array;
-	int            lineno;
-	zend_op       *cur_opcode, *next_opcode;
-	char          *full_varname;
-	zval          *val = NULL;
-	char          *t;
-	int            is_var;
+	int lineno;
+	zend_op *cur_opcode, *next_opcode;
+	char *full_varname;
+	zval *val = NULL;
+	char *t;
+	int is_var;
 	function_stack_entry *fse;
 
 	cur_opcode = *EG(opline_ptr);
@@ -216,15 +212,18 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
 	if (XG(do_trace) && XG(trace_file) && XG(collect_assignments)) {
+
 		full_varname = xdebug_find_var_name(execute_data TSRMLS_CC);
 
-		if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {
+		if(XG(trace_format) == 11 && ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR)||cur_opcode->opcode == ZEND_ADD_STRING||cur_opcode->opcode == ZEND_INIT_STRING||cur_opcode->opcode == ZEND_ADD_VAR)){
+			val = EG(return_value_ptr_ptr);
+		} else if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {
 			char *tmp_varname;
 
 			switch (cur_opcode->opcode) {
-				case ZEND_PRE_INC:  tmp_varname = xdebug_sprintf("++%s", full_varname); break;
+				case ZEND_PRE_INC: tmp_varname = xdebug_sprintf("++%s", full_varname); break;
 				case ZEND_POST_INC: tmp_varname = xdebug_sprintf("%s++", full_varname); break;
-				case ZEND_PRE_DEC:  tmp_varname = xdebug_sprintf("--%s", full_varname); break;
+				case ZEND_PRE_DEC: tmp_varname = xdebug_sprintf("--%s", full_varname); break;
 				case ZEND_POST_DEC: tmp_varname = xdebug_sprintf("%s--", full_varname); break;
 			}
 			xdfree(full_varname);
@@ -271,6 +270,9 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_and,"&=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_xor,"^=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_dim,"=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_obj,"=",1)
+XDEBUG_OPCODE_OVERRIDE_ASSIGN(init_string,"",0)
+XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_string,"",0)
+XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_var,"",0)
 
 void xdebug_count_line(char *filename, int lineno, int executable, int deadcode TSRMLS_DC)
 {
@@ -287,7 +289,7 @@ void xdebug_count_line(char *filename, int lineno, int executable, int deadcode 
 			file = xdmalloc(sizeof(xdebug_coverage_file));
 			file->name = xdstrdup(filename);
 			file->lines = xdebug_hash_alloc(128, xdebug_coverage_line_dtor);
-		
+
 			xdebug_hash_add(XG(code_coverage), filename, strlen(filename), file);
 		}
 		XG(previous_filename) = file->name;
@@ -318,21 +320,21 @@ void xdebug_count_line(char *filename, int lineno, int executable, int deadcode 
 static void prefill_from_opcode(char *fn, zend_op opcode, int deadcode TSRMLS_DC)
 {
 	if (
-		opcode.opcode != ZEND_NOP &&
-		opcode.opcode != ZEND_EXT_NOP &&
-		opcode.opcode != ZEND_RECV &&
-		opcode.opcode != ZEND_RECV_INIT
-		&& opcode.opcode != ZEND_VERIFY_ABSTRACT_CLASS
-		&& opcode.opcode != ZEND_OP_DATA
-		&& opcode.opcode != ZEND_ADD_INTERFACE
-		&& opcode.opcode != ZEND_TICKS
+			opcode.opcode != ZEND_NOP &&
+			opcode.opcode != ZEND_EXT_NOP &&
+			opcode.opcode != ZEND_RECV &&
+			opcode.opcode != ZEND_RECV_INIT
+			&& opcode.opcode != ZEND_VERIFY_ABSTRACT_CLASS
+			&& opcode.opcode != ZEND_OP_DATA
+			&& opcode.opcode != ZEND_ADD_INTERFACE
+			&& opcode.opcode != ZEND_TICKS
 	) {
 		xdebug_count_line(fn, opcode.lineno, 1, deadcode TSRMLS_CC);
 	}
 }
 
-static zend_brk_cont_element* xdebug_find_brk_cont(zval *nest_levels_zval, int array_offset, zend_op_array *op_array)
-{
+static zend_brk_cont_element* xdebug_find_brk_cont(zval *nest_levels_zval,
+		int array_offset, zend_op_array *op_array) {
 	int nest_levels;
 	zend_brk_cont_element *jmp_to;
 
@@ -349,22 +351,20 @@ static zend_brk_cont_element* xdebug_find_brk_cont(zval *nest_levels_zval, int a
 	return jmp_to;
 }
 
-static int xdebug_find_jump(zend_op_array *opa, unsigned int position, long *jmp1, long *jmp2)
-{
+static int xdebug_find_jump(zend_op_array *opa, unsigned int position,
+		long *jmp1, long *jmp2) {
 	zend_op *base_address = &(opa->opcodes[0]);
 
 	zend_op opcode = opa->opcodes[position];
 	if (opcode.opcode == ZEND_JMP) {
-		*jmp1 = ((long) opcode.XDEBUG_ZNODE_ELEM(op1, jmp_addr) - (long) base_address) / sizeof(zend_op);
+		*jmp1 = ((long) opcode.XDEBUG_ZNODE_ELEM(op1, jmp_addr)
+				- (long) base_address) / sizeof(zend_op);
 		return 1;
-	} else if (
-		opcode.opcode == ZEND_JMPZ ||
-		opcode.opcode == ZEND_JMPNZ ||
-		opcode.opcode == ZEND_JMPZ_EX ||
-		opcode.opcode == ZEND_JMPNZ_EX
-	) {
+	} else if (opcode.opcode == ZEND_JMPZ || opcode.opcode == ZEND_JMPNZ
+			|| opcode.opcode == ZEND_JMPZ_EX || opcode.opcode == ZEND_JMPNZ_EX) {
 		*jmp1 = position + 1;
-		*jmp2 = ((long) opcode.XDEBUG_ZNODE_ELEM(op2, jmp_addr) - (long) base_address) / sizeof(zend_op);
+		*jmp2 = ((long) opcode.XDEBUG_ZNODE_ELEM(op2, jmp_addr)
+				- (long) base_address) / sizeof(zend_op);
 		return 1;
 	} else if (opcode.opcode == ZEND_JMPZNZ) {
 		*jmp1 = opcode.XDEBUG_ZNODE_ELEM(op2, opline_num);
@@ -373,13 +373,13 @@ static int xdebug_find_jump(zend_op_array *opa, unsigned int position, long *jmp
 	} else if (opcode.opcode == ZEND_BRK || opcode.opcode == ZEND_CONT) {
 		zend_brk_cont_element *el;
 
-		if (opcode.XDEBUG_TYPE(op2) == IS_CONST
-		    && opcode.XDEBUG_ZNODE_ELEM(op1, jmp_addr) != (zend_op*) 0xFFFFFFFF
-		) {
+		if (opcode.XDEBUG_TYPE(op2) == IS_CONST && opcode.XDEBUG_ZNODE_ELEM(
+				op1, jmp_addr) != (zend_op*) 0xFFFFFFFF) {
 #if PHP_VERSION_ID >= 50399
 			el = xdebug_find_brk_cont(opcode.op2.zv, opcode.XDEBUG_ZNODE_ELEM(op1, opline_num), opa);
 #else
-			el = xdebug_find_brk_cont(&opcode.op2.u.constant, opcode.op1.u.opline_num, opa);
+			el = xdebug_find_brk_cont(&opcode.op2.u.constant,
+					opcode.op1.u.opline_num, opa);
 #endif
 			if (el) {
 				*jmp1 = opcode.opcode == ZEND_BRK ? el->brk : el->cont;
@@ -487,7 +487,7 @@ static void prefill_from_oparray(char *fn, zend_op_array *op_array TSRMLS_DC)
 #endif
 	{
 		return;
-	}	
+	}
 
 	/* Run dead code analysis if requested */
 	if (XG(code_coverage_dead_code_analysis) && XDEBUG_PASS_TWO_DONE) {
@@ -547,34 +547,37 @@ void xdebug_prefill_code_coverage(zend_op_array *op_array TSRMLS_DC)
 		prefill_from_oparray(op_array->filename, op_array TSRMLS_CC);
 	}
 
-	zend_hash_apply_with_arguments(CG(function_table)  XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) prefill_from_function_table, 1, op_array->filename);
+	zend_hash_apply_with_arguments(CG(function_table) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) prefill_from_function_table, 1, op_array->filename);
 	zend_hash_apply_with_arguments(CG(class_table) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) prefill_from_class_table, 1, op_array->filename);
 }
 
-PHP_FUNCTION(xdebug_start_code_coverage)
-{
+PHP_FUNCTION( xdebug_start_code_coverage) {
 	long options = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &options) == FAILURE) {
 		return;
 	}
-	XG(code_coverage_unused) = (options & XDEBUG_CC_OPTION_UNUSED);
-	XG(code_coverage_dead_code_analysis) = (options & XDEBUG_CC_OPTION_DEAD_CODE);
+	XG( code_coverage_unused) = (options & XDEBUG_CC_OPTION_UNUSED);
+	XG( code_coverage_dead_code_analysis) = (options
+			& XDEBUG_CC_OPTION_DEAD_CODE);
 
 	if (!XG(extended_info)) {
-		php_error(E_WARNING, "You can only use code coverage when you leave the setting of 'xdebug.extended_info' to the default '1'.");
+		php_error(
+				E_WARNING,
+				"You can only use code coverage when you leave the setting of 'xdebug.extended_info' to the default '1'.");
 		RETURN_FALSE;
 	} else if (!XG(code_coverage)) {
-		php_error(E_WARNING, "Code coverage needs to be enabled in php.ini by setting 'xdebug.coverage_enable' to '1'.");
+		php_error(
+				E_WARNING,
+				"Code coverage needs to be enabled in php.ini by setting 'xdebug.coverage_enable' to '1'.");
 		RETURN_FALSE;
 	} else {
-		XG(do_code_coverage) = 1;
+		XG( do_code_coverage) = 1;
 		RETURN_TRUE;
 	}
 }
 
-PHP_FUNCTION(xdebug_stop_code_coverage)
-{
+PHP_FUNCTION( xdebug_stop_code_coverage) {
 	long cleanup = 1;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|l", &cleanup) == FAILURE) {
@@ -582,17 +585,17 @@ PHP_FUNCTION(xdebug_stop_code_coverage)
 	}
 	if (XG(do_code_coverage)) {
 		if (cleanup) {
-			XG(previous_filename) = "";
-			XG(previous_file) = NULL;
+			XG( previous_filename) = "";
+			XG( previous_file) = NULL;
 			xdebug_hash_destroy(XG(code_coverage));
-			XG(code_coverage) = xdebug_hash_alloc(32, xdebug_coverage_file_dtor);
+			XG( code_coverage) = xdebug_hash_alloc(32,
+					xdebug_coverage_file_dtor);
 		}
-		XG(do_code_coverage) = 0;
+		XG( do_code_coverage) = 0;
 		RETURN_TRUE;
 	}
 	RETURN_FALSE;
 }
-
 
 static int xdebug_lineno_cmp(const void *a, const void *b TSRMLS_DC)
 {
@@ -608,11 +611,9 @@ static int xdebug_lineno_cmp(const void *a, const void *b TSRMLS_DC)
 	}
 }
 
-
-static void add_line(void *ret, xdebug_hash_element *e)
-{
+static void add_line(void *ret, xdebug_hash_element *e) {
 	xdebug_coverage_line *line = (xdebug_coverage_line*) e->ptr;
-	zval                 *retval = (zval*) ret;
+	zval *retval = (zval*) ret;
 
 	if (line->executable && (line->count == 0)) {
 		add_index_long(retval, line->lineno, -line->executable);
@@ -621,12 +622,11 @@ static void add_line(void *ret, xdebug_hash_element *e)
 	}
 }
 
-static void add_file(void *ret, xdebug_hash_element *e)
-{
+static void add_file(void *ret, xdebug_hash_element *e) {
 	xdebug_coverage_file *file = (xdebug_coverage_file*) e->ptr;
-	zval                 *retval = (zval*) ret;
-	zval                 *lines;
-	HashTable            *target_hash;
+	zval *retval = (zval*) ret;
+	zval *lines;
+	HashTable *target_hash;
 	TSRMLS_FETCH();
 
 	MAKE_STD_ZVAL(lines);
@@ -642,13 +642,11 @@ static void add_file(void *ret, xdebug_hash_element *e)
 	add_assoc_zval_ex(retval, file->name, strlen(file->name) + 1, lines);
 }
 
-PHP_FUNCTION(xdebug_get_code_coverage)
-{
+PHP_FUNCTION( xdebug_get_code_coverage) {
 	array_init(return_value);
 	xdebug_hash_apply(XG(code_coverage), (void *) return_value, add_file);
 }
 
-PHP_FUNCTION(xdebug_get_function_count)
-{
+PHP_FUNCTION( xdebug_get_function_count) {
 	RETURN_LONG(XG(function_count));
 }
