@@ -62,8 +62,14 @@ char* xdebug_error_type(int type) {
 		break;
 #if PHP_VERSION_ID >= 50300
 		case E_DEPRECATED:
+<<<<<<< HEAD
 		return xdstrdup("Deprecated");
 		break;
+=======
+		case E_USER_DEPRECATED:
+			return xdstrdup("Deprecated");
+			break;
+>>>>>>> 14e7c067325501a3467e168afbdefb990ea92a91
 #endif
 	default:
 		return xdstrdup("Unknown error");
@@ -942,22 +948,28 @@ static int xdebug_object_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPL
 	{
 		if (hash_key->nKeyLength != 0) {
 			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &prop_class_name);
+			node = xdebug_xml_node_init("property");
 			if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
-				node = xdebug_xml_node_init("property");
 				xdebug_xml_add_attribute_ex(node, "name", xdstrdup(prop_name), 0, 1);
 			} else {
-				return 0;
+				xdebug_xml_add_attribute_ex(node, "name", xdebug_sprintf("*%s*%s", prop_class_name, prop_name), 0, 1);
 			}
 
-			if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
-				if (parent_name) {
+			if (parent_name) {
+				if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
 					if (parent_name[0] != '$') {
 						full_name = xdebug_sprintf("$%s->%s", parent_name, prop_name);
 					} else {
 						full_name = xdebug_sprintf("%s->%s", parent_name, prop_name);
 					}
-					xdebug_xml_add_attribute_ex(node, "fullname", full_name, 0, 1);
+				} else {
+					if (parent_name[0] != '$') {
+						full_name = xdebug_sprintf("$%s->*%s*%s", parent_name, prop_class_name, prop_name);
+					} else {
+						full_name = xdebug_sprintf("%s->*%s*%s", parent_name, prop_class_name, prop_name);
+					}
 				}
+				xdebug_xml_add_attribute_ex(node, "fullname", full_name, 0, 1);
 			}
 			xdebug_xml_add_attribute(node, "facet", modifier);
 

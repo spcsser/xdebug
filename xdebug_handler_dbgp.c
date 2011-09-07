@@ -423,6 +423,24 @@ static zval* fetch_zval_from_symbol_table(HashTable *ht, char* name, int name_le
 				retval_p = *retval_pp;
 				goto cleanup;
 			}
+			element_length = name_length;
+
+			/* Then we try to see whether the first char is * and use the part between * and * as class name for the private property */
+			if (name[0] == '*') {
+				char *secondStar;
+				
+				secondStar = strstr(name + 1, "*");
+				if (secondStar) {
+					free(element);
+					element_length = name_length - (secondStar + 1 - name);
+					element = prepare_search_key(secondStar + 1, &element_length, name + 1, secondStar - name - 1);
+					if (ht && zend_hash_find(ht, element, element_length + 1, (void **) &retval_pp) == SUCCESS) {
+						retval_p = *retval_pp;
+						goto cleanup;
+					}
+				}
+			}
+
 			break;
 	}
 cleanup:
@@ -1168,8 +1186,13 @@ DBGP_FUNC(breakpoint_set)
 
 static int xdebug_do_eval(char *eval_string, zval *ret_zval TSRMLS_DC)
 {
-	int              old_error_reporting;
-	int              res;
+	int                old_error_reporting;
+	int                res = FAILURE;
+	zval             **original_return_value_ptr_ptr = EG(return_value_ptr_ptr);
+	zend_op          **original_opline_ptr = EG(opline_ptr);
+	zend_op_array     *original_active_op_array = EG(active_op_array);
+	zend_execute_data *original_execute_data = EG(current_execute_data);
+	int                original_no_extensions = EG(no_extensions);
 
 	/* Remember error reporting level */
 	old_error_reporting = EG(error_reporting);
@@ -1177,11 +1200,20 @@ static int xdebug_do_eval(char *eval_string, zval *ret_zval TSRMLS_DC)
 
 	/* Do evaluation */
 	XG(breakpoints_allowed) = 0;
-	res = zend_eval_string(eval_string, ret_zval, "xdebug eval" TSRMLS_CC);
+
+	zend_first_try {
+		res = zend_eval_string(eval_string, ret_zval, "xdebug://debug-eval" TSRMLS_CC);
+	} zend_end_try();
 
 	/* Clean up */
 	EG(error_reporting) = old_error_reporting;
 	XG(breakpoints_allowed) = 1;
+
+	EG(return_value_ptr_ptr) = original_return_value_ptr_ptr;
+	EG(opline_ptr) = original_opline_ptr;
+	EG(active_op_array) = original_active_op_array;
+	EG(current_execute_data) = original_execute_data;
+	EG(no_extensions) = original_no_extensions;
 
 	return res;
 }
@@ -1210,9 +1242,7 @@ DBGP_FUNC(eval)
 	/* base64 decode eval string */
 	eval_string = (char*) xdebug_base64_decode((unsigned char*) CMD_OPTION('-'), strlen(CMD_OPTION('-')), &new_length);
 
-	zend_try {
-		res = xdebug_do_eval(eval_string, &ret_zval TSRMLS_CC);
-	} zend_end_try();
+	res = xdebug_do_eval(eval_string, &ret_zval TSRMLS_CC);
 
 	efree(eval_string);
 
@@ -2615,7 +2645,7 @@ int xdebug_dbgp_register_eval_id(xdebug_con *context, function_stack_entry *fse)
 
 	ei = xdcalloc(sizeof(xdebug_eval_info), 1);
 	ei->id = context->eval_id_sequence;
-	ei->contents = xdstrndup(fse->include_filename + 1, strlen(fse->include_filename) - 2);
+	ei->contents = xdstrndup(fse->include_filename, strlen(fse->include_filename));
 	ei->refcount = 2;
 
 	key = create_eval_key_file(fse->filename, fse->lineno);
@@ -2625,16 +2655,4 @@ int xdebug_dbgp_register_eval_id(xdebug_con *context, function_stack_entry *fse)
 	xdebug_hash_add(context->eval_id_lookup, key, strlen(key), (void*) ei);
 
 	return ei->id;
-}
-
-int xdebug_dbgp_unregister_eval_id(xdebug_con *context, function_stack_entry *fse, int eval_id)
-{
-	char *key;
-
-	key = create_eval_key_file(fse->filename, fse->lineno);
-	xdebug_hash_delete(context->eval_id_lookup, key, strlen(key));
-
-	key = create_eval_key_id(eval_id);
-	xdebug_hash_delete(context->eval_id_lookup, key, strlen(key));
-	return 1;
 }

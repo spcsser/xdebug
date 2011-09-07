@@ -491,7 +491,7 @@ static int xdebug_include_or_eval_handler(ZEND_OPCODE_HANDLER_ARGS)
 		if (XG(last_eval_statement)) {
 			efree(XG(last_eval_statement));
 		}
-		XG(last_eval_statement) = php_addcslashes(Z_STRVAL_P(inc_filename), Z_STRLEN_P(inc_filename), &tmp_len, 0, "'\\\0..\37", 6 TSRMLS_CC);
+		XG(last_eval_statement) = estrndup(Z_STRVAL_P(inc_filename), Z_STRLEN_P(inc_filename));
 
 		if (inc_filename == &tmp_inc_filename) {
 			zval_dtor(&tmp_inc_filename);
@@ -1156,6 +1156,12 @@ void xdebug_execute(zend_op_array *op_array TSRMLS_DC)
 	int                   eval_id = 0, clear = 0;
 	zval                 *return_val = NULL;
 
+	/* If we're evaluating for the debugger's eval capability, just bail out */
+	if (op_array && op_array->filename && strcmp("xdebug://debug-eval", op_array->filename) == 0) {
+		xdebug_old_execute(op_array TSRMLS_CC);
+		return;
+	}
+
 	/* if we're in a ZEND_EXT_STMT, we ignore this function call as it's likely
 	   that it's just being called to check for breakpoints with conditions */
 	if (edata && edata->opline && edata->opline->opcode == ZEND_EXT_STMT) {
@@ -1338,11 +1344,6 @@ void xdebug_execute(zend_op_array *op_array TSRMLS_DC)
 		if (!handle_breakpoints(fse, XDEBUG_BRK_FUNC_RETURN)) {
 			XG(remote_enabled) = 0;
 		}
-	}
-
-	/* If we're in an eval, we need to destroy the created ID again. */
-	if (XG(remote_enabled) && XG(context).handler->unregister_eval_id && fse->function.type == XFUNC_EVAL) {
-		XG(context).handler->unregister_eval_id(&(XG(context)), fse, eval_id);
 	}
 
 	fse->symbol_table = NULL;
@@ -1620,23 +1621,8 @@ PHP_FUNCTION(xdebug_is_enabled)
 
 PHP_FUNCTION(xdebug_break)
 {
-	char *file;
-	int   lineno;
-
-	/* Start JIT if requested and not yet enabled */
-	xdebug_do_jit(TSRMLS_C);
-
-	if (XG(remote_enabled)) {
-		file = zend_get_executed_filename(TSRMLS_C);
-		lineno = zend_get_executed_lineno(TSRMLS_C);
-
-		if (!XG(context).handler->remote_breakpoint(&(XG(context)), XG(stack), file, lineno, XDEBUG_BREAK, NULL, NULL)) {
-			XG(remote_enabled) = 0;
-		}
-		RETURN_TRUE;
-	} else {
-		RETURN_FALSE;
-	}
+	XG(context).do_break = 1;
+	RETURN_TRUE;
 }
 
 PHP_FUNCTION(xdebug_start_error_collection)
