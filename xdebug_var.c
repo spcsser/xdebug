@@ -62,14 +62,9 @@ char* xdebug_error_type(int type) {
 		break;
 #if PHP_VERSION_ID >= 50300
 		case E_DEPRECATED:
-<<<<<<< HEAD
-		return xdstrdup("Deprecated");
-		break;
-=======
 		case E_USER_DEPRECATED:
 			return xdstrdup("Deprecated");
 			break;
->>>>>>> 14e7c067325501a3467e168afbdefb990ea92a91
 #endif
 	default:
 		return xdstrdup("Unknown error");
@@ -349,7 +344,7 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 		break;
 
 		case IS_STRING:
-		tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "'\\\0..\37", 6 TSRMLS_CC);
+		tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "\"\\\0..\37", 6 TSRMLS_CC);
 		if (options->no_decoration) {
 			xdebug_str_add(str, tmp_str, 0);
 		} else if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
@@ -453,8 +448,7 @@ char* xdebug_get_zval_value(zval *val, int debug_zval,
 	return str.d;
 }
 
-char* xdebug_get_zval_json_value(zval *val, int debug_zval,
-		xdebug_var_export_options *options) {
+char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options) {
 	xdebug_str str = { 0, 0, NULL };
 	int default_options = 0;
 	TSRMLS_FETCH();
@@ -1600,6 +1594,7 @@ static int xdebug_object_element_export_json(zval **zv XDEBUG_ZEND_HASH_APPLY_TS
 	{
 		if (hash_key->nKeyLength != 0) {
 			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &prop_class_name);
+
 			if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
 				xdebug_str_add(str, xdebug_sprintf("{\"mod\":\"%s%s\",\"nme\":\"%s\",\"val\":", modifier, spec_mod, prop_name), 1);
 			} else {
@@ -1607,6 +1602,7 @@ static int xdebug_object_element_export_json(zval **zv XDEBUG_ZEND_HASH_APPLY_TS
 			}
 			xdebug_var_export_json(zv, str, level + 2, debug_zval, options TSRMLS_CC);
 			xdebug_str_add(str, "},", 0);
+
 		}
 	}
 	if (options->runtime[level].current_element_nr == options->runtime[level].end_element_nr) {
@@ -1679,6 +1675,10 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 			//zend_hash_update(&XG(known_values), id, sizeof(id), (void**)&struc, sizeof(zval*), NULL);
 		//}
 
+		if(level>1){
+			forceOutput=0;
+		}
+
 		switch (Z_TYPE_PP(struc)) {
 			case IS_BOOL:
 			xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"bool\",\"id\":%s,\"val\":\"%s\"}", id, Z_LVAL_PP(struc) ? "TRUE" : "FALSE"), 1);
@@ -1697,14 +1697,14 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 			break;
 
 			case IS_STRING:
-			tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "\"'\\\0..\37", 7 TSRMLS_CC);
-			if (options->no_decoration) {
-				xdebug_str_add(str, tmp_str, 0);
-			} else if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
-				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"string\",\"id\":%s,\"val\":\"'%s'\"}", id, tmp_str), 1);
+			tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "\"\\\0..\37", 6 TSRMLS_CC);
+			if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
+				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"string\",\"id\":%s,\"val\":\"'", id), 1);
+				xdebug_str_addl(str, tmp_str, tmp_len, 0);
+				xdebug_str_add(str, "'\"}", 0);
 			} else {
-				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"string\",\"id\":%s,\"val\":\"'", id), 0);
-				xdebug_str_addl(str, xdebug_sprintf("%s", tmp_str), options->max_data, 1);
+				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"string\",\"id\":%s,\"val\":\"'", id), 1);
+				xdebug_str_addl(str, tmp_str, options->max_data, 0);
 				xdebug_str_add(str, "...'\"}", 0);
 			}
 			efree(tmp_str);
@@ -1738,11 +1738,13 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 			zce = Z_OBJCE_PP(struc);
 			if (myht->nApplyCount < 1) {
 				char *class_name;
-				zend_uint class_name_len;
+				int class_name_len;
 				zend_class_entry *zce = Z_OBJCE_PP(struc);
 
 				zend_get_object_classname(*struc, &class_name, &class_name_len TSRMLS_CC);
-				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"object\",\"nme\":\"%s\",\"id\":%s,\"cid\":\"%lu\"\"val\":[", class_name, id, zce), 1);
+				xdebug_str_add(str, "{\"typ\":\"object\",\"nme\":\"",0);
+				xdebug_str_add(str, class_name, 0);
+				xdebug_str_add(str, xdebug_sprintf("\",\"id\":%s,\"cid\":\"%lu\",\"val\":[", id, zce), 1);
 
 
 				if (level <= options->max_depth) {
@@ -1753,7 +1755,7 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 					zend_hash_apply_with_arguments(&(zce->constants_table) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_json, 6, level, str, 0, options, class_name, " const");
 					zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_json, 6, level, str, forceOutput, options, class_name, "");
 					/* Remove the ", " at the end of the string */
-					if (myht->nNumOfElements > 0) {
+					if(myht->nNumOfElements > 0 || zce->static_members->nNumOfElements > 0 || zce->constants_table.nNumOfElements > 0){
 						xdebug_str_chop(str, 1);
 					}
 				} else {
@@ -1770,12 +1772,12 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 				char *type_name;
 
 				type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(struc) TSRMLS_CC);
-				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"resource\",\"name\":\"%s\",\"id\":%s,\"val\":\"%ld\"}", type_name ? type_name : "Unknown", id, Z_LVAL_PP(struc)), 1);
+				xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"resource\",\"nme\":\"%s\",\"id\":%s,\"val\":\"%ld\"}", type_name ? type_name : "Unknown", id, Z_LVAL_PP(struc)), 1);
 				break;
 			}
 
 			default:
-			xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"void\",\"id\":%s}", id), 1);
+			xdebug_str_add(str, xdebug_sprintf("{\"typ\":\"void\",\"nme\":\"%d\",\"id\":%s}", Z_TYPE_PP(struc), id), 1);
 			break;
 		}
 	}
@@ -1786,6 +1788,6 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 		} else {
 			fflush(XG(tracedata_file));
 		}
-		xdebug_str_chop(str, str->l - 1);
+		xdebug_str_chop(str, str->l-1);
 	}*/
 }

@@ -191,13 +191,13 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data TSRMLS_DC)
 	return name.d;
 }
 
-static int xdebug_common_assign_dim_handler(char *op, int do_cc,
-		ZEND_OPCODE_HANDLER_ARGS) {
+static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HANDLER_ARGS) {
 	char *file;
 	zend_op_array *op_array = execute_data->op_array;
 	int lineno;
 	zend_op *cur_opcode, *next_opcode;
 	char *full_varname;
+	zval *bw_val = NULL;
 	zval *val = NULL;
 	char *t;
 	int is_var;
@@ -215,9 +215,10 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc,
 
 		full_varname = xdebug_find_var_name(execute_data TSRMLS_CC);
 
-		if(XG(trace_format) == 11 && ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR)||cur_opcode->opcode == ZEND_ADD_STRING||cur_opcode->opcode == ZEND_INIT_STRING||cur_opcode->opcode == ZEND_ADD_VAR)){
-			val = EG(return_value_ptr_ptr);
-		} else if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {
+		if(XG(trace_format) == 11 && (cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR)){
+			bw_val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+		}
+		if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {
 			char *tmp_varname;
 
 			switch (cur_opcode->opcode) {
@@ -236,8 +237,14 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc,
 			val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		}
 
-		fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
-		t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+
+		if(XG(trace_format) == 11){
+			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
+			t = xdebug_return_trace_assignment_json(fse, full_varname, val, bw_val, op, file, lineno TSRMLS_CC);
+		}else{
+			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
+			t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+		}
 		xdfree(full_varname);
 		fprintf(XG(trace_file), "%s", t);
 		fflush(XG(trace_file));
@@ -270,9 +277,9 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_and,"&=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_xor,"^=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_dim,"=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_obj,"=",1)
-XDEBUG_OPCODE_OVERRIDE_ASSIGN(init_string,"",0)
-XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_string,"",0)
-XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_var,"",0)
+//XDEBUG_OPCODE_OVERRIDE_ASSIGN(init_string,"",0)
+//XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_string,"",0)
+//XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_var,"",0)
 
 void xdebug_count_line(char *filename, int lineno, int executable, int deadcode TSRMLS_DC)
 {

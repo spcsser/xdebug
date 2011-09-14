@@ -21,6 +21,7 @@
 
 char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSRMLS_DC);
 char* xdebug_return_trace_assignment(function_stack_entry *i, char *varname, zval *retval, char *op, char *file, int fileno TSRMLS_DC);
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *file, int fileno TSRMLS_DC);
 
 void xdebug_trace_function_begin(function_stack_entry *fse, int function_nr TSRMLS_DC);
 void xdebug_trace_function_end(function_stack_entry *fse, int function_nr TSRMLS_DC);

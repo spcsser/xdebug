@@ -1,7 +1,7 @@
 #ifndef XDEBUG_ODB_H
 #define XDEBUG_ODB_H
 
-#include <sqlite3.h>
+#include "ext/standard/php_string.h"
 
 ZEND_EXTERN_MODULE_GLOBALS( xdebug)
 
@@ -13,7 +13,7 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence TSRMLS_DC)
 {
 	char *tmp_name;
-	char *tmp_val;
+
 	xdebug_str str = {0, 0, NULL};
 	xdebug_str dstr = {0, 0, NULL};
 
@@ -33,12 +33,18 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 		if(strstr(tmp_name,"->__construct")){
 			i->function.type=XFUNC_NEW;
 		}
-		xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"", tmp_name), 1);
+
+		xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"",tmp_name), 1);
 		xdebug_str_add(&str, xdebug_sprintf(",\"ext\":%d,\"ftp\":%d", i->user_defined == XDEBUG_EXTERNAL ? 1 : 0, i->function.type), 1);
 		xdfree(tmp_name);
 
 		if (i->include_filename) {
-			xdebug_str_add(&str, xdebug_sprintf(",\"inc\":\"%s\"",i->include_filename), 1);
+			int tmp_len;
+
+			char *escaped;
+			escaped = php_addcslashes(i->include_filename, strlen(i->include_filename), &tmp_len, 0, "\\\0..\37", 5 TSRMLS_CC);
+			xdebug_str_add(&str, xdebug_sprintf(",\"inc\":\"%s\"",escaped), 1);
+			efree(escaped);
 		}
 
 		/* Filename and Lineno (9, 10) */

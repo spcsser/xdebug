@@ -55,6 +55,77 @@ void xdebug_trace_function_end(function_stack_entry *fse, int function_nr TSRMLS
 	}
 }
 
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *filename, int lineno TSRMLS_DC)
+{
+	int j = 0;
+	xdebug_str str = {0, 0, NULL};
+	xdebug_str dstr = {0, 0, NULL};
+	char *tmp_value=0;
+	char *tmp_varval=0;
+
+	xdebug_str_add(&str, xdebug_sprintf("\n{\"lvl\":%d", i->level), 1);
+	xdebug_str_add(&str, xdebug_sprintf(",\"aid\":%d", ++XG(function_count)), 1);
+
+	xdebug_str_add(&str, ",\"atp\":2", 0);
+	xdebug_str_add(&str, xdebug_sprintf(",\"tme\":%f", i->time - XG(start_time)), 1);
+#if HAVE_PHP_MEMORY_USAGE
+	xdebug_str_add(&str, xdebug_sprintf(",\"mem\":%lu", i->memory), 1);
+#else
+
+#endif
+	zend_op *cur_opcode = *EG(opline_ptr), *opcode_ptr;
+
+	xdebug_str_add(&dstr, xdebug_sprintf("\n{\"aid\":%d,\"atp\":2", XG(function_count)), 1);
+
+	if(EG(This)){
+		char* tmp_val=0;
+		tmp_val=xdebug_get_zval_json_value(EG(This), 0, NULL);
+		if(tmp_val){
+			xdebug_str_add(&dstr, xdebug_sprintf(",\"obj\":%s",tmp_val), 1);
+		}else{
+			xdebug_str_add(&dstr, xdebug_sprintf(",\"id\":%lu",&i->This), 1);
+		}
+	}else if(i->function.class){
+		xdebug_str_add(&dstr, xdebug_sprintf(",\"cid\":\"%s\"",i->function.class), 1);
+	}else{
+		xdebug_str_add(&dstr, xdebug_sprintf(",\"ast\":%lu",&i->execute_data->symbol_table), 1);
+	}
+
+	xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
+	xdebug_str_add(&dstr, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
+
+	xdebug_str_add(&str, xdebug_sprintf(",\"fle\":\"%s\",\"lne\":%d}", filename, lineno), 1);
+
+	tmp_value = xdebug_get_zval_json_value(retval, 0, NULL);
+	if(varval && varval !=NULL){
+		tmp_varval = xdebug_get_zval_json_value(varval, 0, NULL);
+	}
+
+	if (tmp_value) {
+		xdebug_str_add(&dstr, xdebug_sprintf(",\"val\":%s", tmp_value), 1);
+	} else {
+		xdebug_str_add(&dstr, ",\"val\":\"NULL\"", 1);
+	}
+
+	if(tmp_varval){
+		xdebug_str_add(&dstr, xdebug_sprintf(",\"op\":\"%s\",\"vvl\":%s}", op, tmp_varval), 1);
+	}else{
+		xdebug_str_addl(&dstr, "}", 1, 0);
+	}
+
+	if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
+		fclose(XG(tracedata_file));
+		XG(tracedata_file) = NULL;
+	} else {
+		fflush(XG(tracedata_file));
+	}
+
+
+	xdebug_str_free(&dstr);
+
+	return str.d;
+}
+
 char* xdebug_return_trace_assignment(function_stack_entry *i, char *varname, zval *retval, char *op, char *filename, int lineno TSRMLS_DC)
 {
 	int j = 0;
@@ -86,79 +157,6 @@ char* xdebug_return_trace_assignment(function_stack_entry *i, char *varname, zva
 			}
 		}
 		xdebug_str_add(&str, xdebug_sprintf(" %s:%d\n", filename, lineno), 1);
-	} else if(XG(trace_format) == 11) {
-		xdebug_str_add(&str, xdebug_sprintf("\n{\"lvl\":%d", i->level), 1);
-		xdebug_str_add(&str, xdebug_sprintf(",\"aid\":%d", ++XG(function_count)), 1);
-
-		xdebug_str_add(&str, ",\"atp\":2", 0);
-		xdebug_str_add(&str, xdebug_sprintf(",\"tme\":%f", i->time - XG(start_time)), 1);
-#if HAVE_PHP_MEMORY_USAGE
-		xdebug_str_add(&str, xdebug_sprintf(",\"mem\":%lu", i->memory), 1);
-#else
-
-#endif
-		zend_op *cur_opcode = *EG(opline_ptr), *opcode_ptr;
-		/* Scroll back to start of FETCHES */
-		/*int gohungfound = 0;
-		opcode_ptr = cur_opcode-1;
-		while (opcode_ptr->opcode == ZEND_FETCH_DIM_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_W) {
-			opcode_ptr = opcode_ptr - 1;
-			gohungfound = 1;
-		}
-		opcode_ptr = opcode_ptr + 1;*/
-
-		xdebug_str_add(&dstr, xdebug_sprintf("\n{\"aid\":%d,\"atp\":2", XG(function_count)), 1);
-
-		//if (gohungfound && opcode_ptr->XDEBUG_TYPE(op1) == IS_UNUSED && opcode_ptr->opcode == ZEND_FETCH_OBJ_W) {
-			//xdebug_str_add(&str, xdebug_sprintf(",\"id\":\"%p\"",&i->This), 1);
-			//xdebug_str_add(&dstr, xdebug_sprintf(",\"id\":%lu",&i->This), 1);
-		//}else if(cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED){
-			//xdebug_str_add(&str, xdebug_sprintf(",\"id\":\"%p\"",&i->This), 1);
-			//xdebug_str_add(&dstr, xdebug_sprintf(",\"id\":%lu",&i->This), 1);
-		//}else{
-			//xdebug_str_add(&str, xdebug_sprintf(",\"ast\":\"%p\"",&i->execute_data->symbol_table), 1);
-			if(EG(This)){
-				char* tmp_val=0;
-				tmp_val=xdebug_get_zval_json_value(EG(This), 0, NULL);
-				if(tmp_val){
-					xdebug_str_add(&dstr, xdebug_sprintf(",\"obj\":%s",tmp_val), 1);
-				}else{
-					xdebug_str_add(&dstr, xdebug_sprintf(",\"id\":%lu",&i->This), 1);
-				}
-			}else if(&i->function && &i->function.class){
-				xdebug_str_add(&dstr, xdebug_sprintf(",\"cid\":\"%s\"",i->function.class), 1);
-			}else{
-				xdebug_str_add(&dstr, xdebug_sprintf(",\"ast\":%lu",&i->execute_data->symbol_table), 1);
-			}
-		//}
-
-		xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
-		xdebug_str_add(&dstr, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
-
-		xdebug_str_add(&str, xdebug_sprintf(",\"fle\":\"%s\",\"lne\":%d}", filename, lineno), 1);
-
-		//if (op[0] != '\0' ) { // pre/post inc/dec ops are special
-			//xdebug_str_add(&str, xdebug_sprintf(",\"op\":\"%s\"", op), 1);
-
-		tmp_value = xdebug_get_zval_json_value(retval, 0, NULL);
-
-
-
-		if (tmp_value) {
-			xdebug_str_add(&dstr, xdebug_sprintf(",\"val\":%s}", tmp_value), 1);
-		} else {
-			xdebug_str_add(&dstr, ",\"val\":\"NULL\"}", 1);
-		}
-
-		if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
-			fclose(XG(tracedata_file));
-			XG(tracedata_file) = NULL;
-		} else {
-			fflush(XG(tracedata_file));
-		}
-		xdfree(tmp_value);
-		xdebug_str_free(&dstr);
-		//}
 	} else {
 		return xdstrdup("");
 	}
@@ -317,9 +315,6 @@ static char* return_trace_stack_frame_computerized(function_stack_entry* i, int 
 		xdfree(tmp_name);
 
 		if (i->include_filename) {
-<<<<<<< HEAD
-			xdebug_str_add(&str, xdebug_sprintf("%s\t",i->include_filename), 0);
-=======
 			if (i->function.type == XFUNC_EVAL) {
 				int tmp_len;
 
@@ -330,7 +325,6 @@ static char* return_trace_stack_frame_computerized(function_stack_entry* i, int 
 			} else {
 				xdebug_str_add(&str, i->include_filename, 0);
 			}
->>>>>>> 14e7c067325501a3467e168afbdefb990ea92a91
 		}
 
 		/* Filename and Lineno (9, 10) */
