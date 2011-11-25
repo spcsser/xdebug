@@ -435,10 +435,10 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 
 			type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(struc) TSRMLS_CC);
 			xdebug_str_add(str, "resource(", 0);
-			xdebug_str_add(str, xdebug_sprintf("%ld", Z_LVAL_PP(struc), 1);
+			xdebug_str_add(str, xdebug_sprintf("%ld", Z_LVAL_PP(struc)), 1);
 			xdebug_str_add(str, ") of type (", 0);
 			xdebug_str_add(str, type_name ? type_name : "Unknown", 0);
-			xdebug_str_add(str, ")", 0);
+			xdebug_str_addl(str, ")", 1, 0);
 			break;
 		}
 
