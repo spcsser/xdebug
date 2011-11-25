@@ -7,6 +7,12 @@
 
 //ZEND_EXTERN_MODULE_GLOBALS(xdebug)
 
+void xdebug_odb_call_entry_dtor(void *elem)
+{
+	zval *struc = (zval*)elem;
+	Z_DELREF_P(struc);
+}
+
 void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno) {
 	xdebug_str str = { 0, 0, NULL };
 	xdebug_str dstr = { 0, 0, NULL };

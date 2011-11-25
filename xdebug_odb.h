@@ -9,6 +9,7 @@ void xdebug_odb_handle_exception(zval *exception);
 void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno);
 void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
 char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options);
+void xdebug_odb_call_entry_dtor(void *elem);
 
 char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *file, int fileno TSRMLS_DC);
 
