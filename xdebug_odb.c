@@ -356,9 +356,17 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		fflush(XG(tracedata_file));
 	}
 
+	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
+		fclose(XG(trace_file));
+		XG(trace_file) = NULL;
+	} else {
+		fflush(XG(trace_file));
+	}
+
+	xdebug_str_free(&str);
 	xdebug_str_free(&dstr);
 
-	return str.d;
+	return xdstrdup("");
 }
 
 char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options) {

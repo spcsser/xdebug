@@ -255,11 +255,19 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 		}else{
 			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
 			t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+
+			if (fprintf(XG(trace_file), "%s", t) < 0) {
+	                        fclose(XG(trace_file));
+        	                XG(trace_file) = NULL;
+                	} else {
+                        	fflush(XG(trace_file));
+	                }
+
+        	        xdfree(full_varname);
+                	xdfree(t);
+
 		}
-		xdfree(full_varname);
-		fprintf(XG(trace_file), "%s", t);
-		fflush(XG(trace_file));
-		xdfree(t);
+
 	}
 	return ZEND_USER_OPCODE_DISPATCH;
 }
