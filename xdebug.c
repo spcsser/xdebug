@@ -59,6 +59,7 @@
 #include "xdebug_superglobals.h"
 #include "xdebug_tracing.h"
 #include "usefulstuff.h"
+#include "xdebug_odb.h"
 
 /* execution redirection functions */
 zend_op_array* (*old_compile_file)(zend_file_handle* file_handle, int type TSRMLS_DC);
@@ -520,6 +521,7 @@ PHP_MINIT_FUNCTION(xdebug)
 
 	/* initialize aggregate call information hash */
 	zend_hash_init_ex(&XG(aggr_calls), 50, NULL, (dtor_func_t) xdebug_profile_aggr_call_entry_dtor, 1, 0);
+	zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
 
 	/* Redirect compile and execute functions to our own */
 	old_compile_file = zend_compile_file;
@@ -655,6 +657,7 @@ PHP_MSHUTDOWN_FUNCTION(xdebug)
 	zend_error_cb = xdebug_old_error_cb;
 
 	zend_hash_destroy(&XG(aggr_calls));
+	zend_hash_destroy(&XG(known_values));
 
 #ifdef ZTS
 	ts_free_id(xdebug_globals_id);
@@ -1044,9 +1047,9 @@ static void xdebug_throw_exception_hook(zval *exception TSRMLS_DC)
 	file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 	line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-	convert_to_string_ex(&message);
-	convert_to_string_ex(&file);
-	convert_to_long_ex(&line);
+	if (Z_TYPE_P(message) != IS_STRING || Z_TYPE_P(file) != IS_STRING || Z_TYPE_P(line) != IS_LONG) {
+		php_error(E_ERROR, "Your exception class uses incorrect types for common properties: 'message' and 'file' need to be a string and 'line' needs to be an integer.");
+	}
 
 #if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2) || PHP_MAJOR_VERSION >= 6
 	previous_exception = zend_read_property(default_ce, exception, "previous", sizeof("previous")-1, 1 TSRMLS_CC);
@@ -1097,6 +1100,10 @@ static void xdebug_throw_exception_hook(zval *exception TSRMLS_DC)
 				}
 			}
 		}
+	}
+
+	if(XG(do_trace) && XG(trace_file) && XG(trace_format) == 11){
+		xdebug_odb_handle_exception(exception);
 	}
 }
 
@@ -1266,6 +1273,7 @@ void xdebug_execute(zend_op_array *op_array TSRMLS_DC)
 	fse = xdebug_add_stack_frame(edata, op_array, XDEBUG_EXTERNAL TSRMLS_CC);
 
 	function_nr = XG(function_count);
+	fse->fn_nr=function_nr;
 	xdebug_trace_function_begin(fse, function_nr TSRMLS_CC);
 
 	fse->symbol_table = EG(active_symbol_table);
@@ -1384,6 +1392,7 @@ void xdebug_execute_internal(zend_execute_data *current_execute_data, int return
 	fse = xdebug_add_stack_frame(edata, edata->op_array, XDEBUG_INTERNAL TSRMLS_CC);
 
 	function_nr = XG(function_count);
+	fse->fn_nr=function_nr;
 	xdebug_trace_function_begin(fse, function_nr TSRMLS_CC);
 
 	/* Check for entry breakpoints */
@@ -1742,6 +1751,7 @@ PHP_FUNCTION(xdebug_clear_aggr_profiling_data)
 	}
 
 	zend_hash_clean(&XG(aggr_calls));
+	zend_hash_clean(&XG(known_values));
 
 	RETURN_TRUE;
 }
@@ -1785,7 +1795,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
 
-	if (XG(remote_enabled)) {
+	if (XG(remote_enabled) || XG(do_trace)) {
 
 		if (XG(context).do_break) {
 			XG(context).do_break = 0;
@@ -1805,6 +1815,10 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 			level = 0;
 		}
 		
+		if(XG(trace_format)==11){
+			//xdebug_odb_handle_statement(op_array, file, lineno);
+		}
+
 		if (XG(context).do_finish && XG(context).next_level == level) { /* Check for "finish" */
 			XG(context).do_finish = 0;
 
