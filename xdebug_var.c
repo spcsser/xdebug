@@ -251,7 +251,8 @@ static int xdebug_array_element_export(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_D
 		options->runtime[level].current_element_nr < options->runtime[level].end_element_nr)
 	{
 		if (hash_key->nKeyLength==0) { /* numeric key */
-			xdebug_str_add(str, xdebug_sprintf("%ld => ", hash_key->h), 1);
+			xdebug_str_add(str, xdebug_sprintf("%ld", hash_key->h), 1);
+			xdebug_str_add(str, " => ",  0);
 		} else { /* string key */
 			int newlen = 0;
 			char *tmp, *tmp2;
@@ -300,9 +301,19 @@ static int xdebug_object_element_export(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_
 		if (hash_key->nKeyLength != 0) {
 			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &prop_class_name);
 			if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
-				xdebug_str_add(str, xdebug_sprintf("%s $%s = ", modifier, prop_name), 1);
+				xdebug_str_add(str, modifier, 0);
+				xdebug_str_add(str, " $", 0);
+				xdebug_str_add(str, prop_name, 0);
+				xdebug_str_add(str, " = ", 0);
+				//xdebug_str_add(str, xdebug_sprintf("%s $%s = ", modifier, prop_name), 1);
 			} else {
-				xdebug_str_add(str, xdebug_sprintf("%s ${%s}:%s = ", modifier, prop_class_name, prop_name), 1);
+				xdebug_str_add(str, modifier, 0);
+				xdebug_str_add(str, " ${", 0);
+				xdebug_str_add(str, prop_class_name, 0);
+				xdebug_str_add(str, "}:", 0);
+				xdebug_str_add(str, prop_name, 0);
+				xdebug_str_add(str, " = ", 0);
+				//xdebug_str_add(str, xdebug_sprintf("%s ${%s}:%s = ", modifier, prop_class_name, prop_name), 1);
 			}
 		}
 		xdebug_var_export(zv, str, level + 2, debug_zval, options TSRMLS_CC);
@@ -325,11 +336,16 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 		return;
 	}
 	if (debug_zval) {
-		xdebug_str_add(str, xdebug_sprintf("(refcount=%d, is_ref=%d)=", (*struc)->XDEBUG_REFCOUNT, (*struc)->XDEBUG_IS_REF), 1);
+		xdebug_str_add(str, "(refcount=", 0);
+		xdebug_str_add(str, xdebug_sprintf("%d", (*struc)->XDEBUG_REFCOUNT), 1);
+		xdebug_str_add(str, ", is_ref=", 0);
+		xdebug_str_add(str, xdebug_sprintf("%d", (*struc)->XDEBUG_IS_REF), 1);
+		xdebug_str_add(str, ")=", 0);
+		//xdebug_str_add(str, xdebug_sprintf("(refcount=%d, is_ref=%d)=", (*struc)->XDEBUG_REFCOUNT, (*struc)->XDEBUG_IS_REF), 1);
 	}
 	switch (Z_TYPE_PP(struc)) {
 		case IS_BOOL:
-			xdebug_str_add(str, xdebug_sprintf("%s", Z_LVAL_PP(struc) ? "TRUE" : "FALSE"), 1);
+			xdebug_str_add(str, Z_LVAL_PP(struc) ? "TRUE" : "FALSE", 0);
 			break;
 
 		case IS_NULL:
@@ -349,10 +365,12 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 			if (options->no_decoration) {
 				xdebug_str_add(str, tmp_str, 0);
 			} else if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
-				xdebug_str_add(str, xdebug_sprintf("'%s'", tmp_str), 1);
+				xdebug_str_addl(str, "'", 1, 0);
+				xdebug_str_add(str, tmp_str, 0);
+				xdebug_str_addl(str, "'", 1, 0);
 			} else {
 				xdebug_str_addl(str, "'", 1, 0);
-				xdebug_str_addl(str, xdebug_sprintf("%s", tmp_str), options->max_data, 1);
+				xdebug_str_addl(str, tmp_str, options->max_data, 0);
 				xdebug_str_addl(str, "...'", 4, 0);
 			}
 			efree(tmp_str);
@@ -388,7 +406,9 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 				zend_uint class_name_len;
 
 				zend_get_object_classname(*struc, &class_name, &class_name_len TSRMLS_CC);
-				xdebug_str_add(str, xdebug_sprintf("class %s { ", class_name), 1);
+				xdebug_str_add(str, "class ", 0);
+				xdebug_str_add(str, class_name, 0);
+				xdebug_str_add(str, " { ", 0);
 
 				if (level <= options->max_depth) {
 					options->runtime[level].current_element_nr = 0;
@@ -414,7 +434,11 @@ void xdebug_var_export(zval **struc, xdebug_str *str, int level, int debug_zval,
 			char *type_name;
 
 			type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(struc) TSRMLS_CC);
-			xdebug_str_add(str, xdebug_sprintf("resource(%ld) of type (%s)", Z_LVAL_PP(struc), type_name ? type_name : "Unknown"), 1);
+			xdebug_str_add(str, "resource(", 0);
+			xdebug_str_add(str, xdebug_sprintf("%ld", Z_LVAL_PP(struc), 1);
+			xdebug_str_add(str, ") of type (", 0);
+			xdebug_str_add(str, type_name ? type_name : "Unknown", 0);
+			xdebug_str_add(str, ")", 0);
 			break;
 		}
 

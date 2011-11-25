@@ -139,12 +139,12 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 #if HAVE_PHP_MEMORY_USAGE
 		xdebug_str_add(&str, ",\"mem\":", 0);
 		xdebug_str_add(&str, mem, 1);
-		//xdebug_str_add(&str, ",\"lne\":", 0);
-		//xdebug_str_add(&str, xdebug_sprintf("%d", EG(current_execute_data)->opline->lineno), 1);
-		xdebug_str_add(&str, "}", 0);
 #else
 
 #endif
+		//xdebug_str_add(&str, ",\"lne\":", 0);
+		//xdebug_str_add(&str, xdebug_sprintf("%d", EG(current_execute_data)->opline->lineno), 1);
+		xdebug_str_add(&str, "}", 0);
 	}
 
 	return str.d;
@@ -232,10 +232,12 @@ void xdebug_odb_handle_exception(zval *exception) {
 	xdebug_str str = { 0, 0, NULL };
 	xdebug_str dstr = { 0, 0, NULL };
 
+	char *fn_nr=xdebug_sprintf("%d", ++XG(function_count));
+
 	xdebug_str_add(&str, "\n{\"lvl\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", XG(level)), 1);
 	xdebug_str_add(&str, ",\"aid\":", 0);
-	xdebug_str_add(&str, xdebug_sprintf("%d", ++XG(function_count)), 1);
+	xdebug_str_add(&str, fn_nr, 0);
 	xdebug_str_add(&str, ",\"atp\":6", 0);
 	xdebug_str_add(&str, ",\"tme\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%f", xdebug_get_utime() - XG(
@@ -244,7 +246,7 @@ void xdebug_odb_handle_exception(zval *exception) {
 	xdebug_str_add(&str, xdebug_sprintf("%lu", XG_MEMORY_USAGE()), 1);
 
 	xdebug_str_add(&dstr, "\n{\"aid\":", 0);
-	xdebug_str_add(&dstr, xdebug_sprintf("%d", XG(function_count)), 1);
+	xdebug_str_add(&dstr, fn_nr, 1);
 	xdebug_str_add(&dstr, ",\"atp\":6", 0);
 
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
@@ -332,7 +334,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 
 	if (tmp_value) {
 		xdebug_str_add(&dstr, ",\"val\":", 0);
-		xdebug_str_add(&dstr, tmp_value, 0);
+		xdebug_str_add(&dstr, tmp_value, 1);
 	} else {
 		xdebug_str_add(&dstr, ",\"val\":\"NULL\"", 0);
 	}
@@ -341,7 +343,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		xdebug_str_add(&dstr, ",\"op\":\"", 0);
 		xdebug_str_add(&dstr, op, 0);
 		xdebug_str_add(&dstr, "\",\"vvl\":", 0);
-		xdebug_str_add(&dstr, tmp_varval, 0);
+		xdebug_str_add(&dstr, tmp_varval, 1);
 		xdebug_str_add(&dstr, "}", 0);
 	}else{
 		xdebug_str_addl(&dstr, "}", 1, 0);
@@ -352,13 +354,6 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		XG(tracedata_file) = NULL;
 	} else {
 		fflush(XG(tracedata_file));
-	}
-
-	if(tmp_value){
-		xdfree(tmp_value);
-	}
-	if(tmp_varval){
-		xdfree(tmp_varval);
 	}
 
 	xdebug_str_free(&dstr);
