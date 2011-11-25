@@ -202,6 +202,7 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 	int            lineno;
 	zend_op       *cur_opcode, *next_opcode;
 	char          *full_varname;
+	zval          *bw_val = NULL;
 	zval          *val = NULL;
 	char          *t;
 	int            is_var;
@@ -218,6 +219,9 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 	if (XG(do_trace) && XG(trace_file) && XG(collect_assignments)) {
 		full_varname = xdebug_find_var_name(execute_data TSRMLS_CC);
 
+		if(XG(trace_format) == 11 && (cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR)){
+			bw_val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+		}
 		if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {
 			char *tmp_varname;
 
@@ -237,8 +241,14 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 			val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		}
 
-		fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
-		t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+
+		if(XG(trace_format) == 11){
+			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
+			t = xdebug_return_trace_assignment_json(fse, full_varname, val, bw_val, op, file, lineno TSRMLS_CC);
+		}else{
+			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
+			t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+		}
 		xdfree(full_varname);
 		fprintf(XG(trace_file), "%s", t);
 		fflush(XG(trace_file));

@@ -18,7 +18,6 @@
 
 #include "zend.h"
 #include "php_xdebug.h"
-#include "xdebug_compat.h"
 #include "xdebug_str.h"
 #include "xdebug_xml.h"
 #include "xdebug_compat.h"

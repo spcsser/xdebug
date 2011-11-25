@@ -20,6 +20,7 @@
 #include "xdebug_str.h"
 #include "xdebug_tracing.h"
 #include "xdebug_var.h"
+#include "xdebug_odb.h"
 #include "ext/standard/php_string.h"
 
 ZEND_EXTERN_MODULE_GLOBALS(xdebug)
@@ -99,25 +100,54 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 	xdebug_str str = {0, 0, NULL};
 	char      *tmp_value;
 
-	if (XG(trace_format) != 0) {
+	if (XG(trace_format) == 2) {//HTML
 		return xdstrdup("");
-	}
+	} else if (XG(trace_format) == 1) { //Computerized
+		xdebug_str_addl(&str, "\t", 1, 0);
+		tmp_value = xdebug_get_zval_value(retval, 0, NULL);
+		if (tmp_value) {
+			xdebug_str_add(&str, tmp_value, 1);
+		}
+	} else if(XG(trace_format == 11)) {//JSON
 
-	xdebug_str_addl(&str, "                    ", 20, 0);
-	if (XG(show_mem_delta)) {
-		xdebug_str_addl(&str, "        ", 8, 0);
-	}
-	for (j = 0; j < i->level; j++) {
-		xdebug_str_addl(&str, "  ", 2, 0);
-	}
-	xdebug_str_addl(&str, "   >=> ", 7, 0);
+		xdebug_str_add(&str, "\n{\"aid\":", 0);
+		xdebug_str_add(&str, xdebug_sprintf("%d", i->fn_nr), 1);
+		xdebug_str_add(&str, ",\"atp\":1,\"val\":", 0);
 
-	tmp_value = xdebug_get_zval_value(retval, 0, NULL);
-	if (tmp_value) {
-		xdebug_str_add(&str, tmp_value, 1);
-	}
-	xdebug_str_addl(&str, "\n", 2, 0);
+		tmp_value = xdebug_get_zval_json_value(retval, 0, NULL);
+		if (tmp_value) {
+			xdebug_str_add(&str, tmp_value, 1);
+		} else {
+			xdebug_str_add(&str, "\"NULL\"", 0);
+		}
 
+		if (fprintf(XG(tracedata_file), "%s}", str.d) < 0) {
+			fclose(XG(tracedata_file));
+			XG(tracedata_file) = NULL;
+		} else {
+			fflush(XG(tracedata_file));
+		}
+		xdebug_str_free(&str);
+		return xdstrdup("");
+	} else if (XG(trace_format) == 0) { //Human readable
+			xdebug_str_addl(&str, "                    ", 20, 0);
+		if (XG(show_mem_delta)) {
+			xdebug_str_addl(&str, "        ", 8, 0);
+		}
+		for (j = 0; j < i->level; j++) {
+			xdebug_str_addl(&str, "  ", 2, 0);
+		}
+		xdebug_str_addl(&str, "   >=> ", 7, 0);
+
+		tmp_value = xdebug_get_zval_value(retval, 0, NULL);
+		if (tmp_value) {
+			xdebug_str_add(&str, tmp_value, 1);
+		}
+		xdebug_str_addl(&str, "\n", 2, 0);
+	}
+	if((XG(trace_format)!= 11)) {
+		xdebug_str_addl(&str, "\n", 1, 0);
+	}
 	return str.d;
 }
 
@@ -338,6 +368,8 @@ static char* return_trace_stack_frame_begin(function_stack_entry* i, int fnr TSR
 			return return_trace_stack_frame_begin_normal(i TSRMLS_CC);
 		case 1:
 			return return_trace_stack_frame_begin_computerized(i, fnr);
+		case 11:
+			return return_trace_stack_frame_begin_json(i, fnr);
 		case 2:
 			return return_trace_stack_frame_begin_html(i, fnr TSRMLS_CC);
 		default:
@@ -351,6 +383,8 @@ static char* return_trace_stack_frame_end(function_stack_entry* i, int fnr TSRML
 	switch (XG(trace_format)) {
 		case 1:
 			return return_trace_stack_frame_end_computerized(i, fnr);
+		case 11:
+			return return_trace_stack_frame_end_json(i, fnr);
 		default:
 			return xdstrdup("");
 	}
@@ -390,6 +424,8 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	char *str_time;
 	char *filename;
 	char *tmp_fname = NULL;
+	char *tmp_fdname = NULL;
+	char *filename_data;
 
 	if (fname && strlen(fname)) {
 		filename = xdstrdup(fname);
@@ -414,12 +450,24 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	if (options & XDEBUG_TRACE_OPTION_HTML) {
 		XG(trace_format) = 2;
 	}
-	if (XG(trace_file)) {
-		if (XG(trace_format) == 1) {
-			fprintf(XG(trace_file), "Version: %s\n", XDEBUG_VERSION);
-			fprintf(XG(trace_file), "File format: 2\n");
+	if(XG(trace_format) == 11) {
+		filename_data = xdebug_sprintf("%s_data",fname);
+
+		if (options & XDEBUG_TRACE_OPTION_APPEND) {
+			XG(tracedata_file) = xdebug_fopen(filename_data, "a", "xt", (char**) &tmp_fdname);
+		} else {
+			XG(tracedata_file) = xdebug_fopen(filename_data, "w", "xt", (char**) &tmp_fdname);
 		}
-		if (XG(trace_format) == 0 || XG(trace_format) == 1) {
+		if(XG(tracedata_file)) {
+			XG(tracedatafile_name) = tmp_fdname;
+		}
+	}
+	if (XG(trace_file)) {
+		if (XG(trace_format) == 1||XG(trace_format) == 11) {
+			fprintf(XG(trace_file), "Version: %s\n", XDEBUG_VERSION);
+			fprintf(XG(trace_file), "File format: %lu\n", XG(trace_format)+1);
+		}
+		if (XG(trace_format) == 0 || XG(trace_format) == 1 || XG(trace_format) == 11) {
 			str_time = xdebug_get_time();
 			fprintf(XG(trace_file), "TRACE START [%s]\n", str_time);
 			xdfree(str_time);
@@ -463,12 +511,21 @@ void xdebug_stop_trace(TSRMLS_D)
 			fprintf(XG(trace_file), "</table>\n");
 		}
 
+		if(XG(trace_format)==11){
+			fclose(XG(tracedata_file));
+			XG(tracedata_file)= NULL;
+		}
+
 		fclose(XG(trace_file));
 		XG(trace_file) = NULL;
 	}
 	if (XG(tracefile_name)) {
 		xdfree(XG(tracefile_name));
 		XG(tracefile_name) = NULL;
+	}
+	if (XG(tracedatafile_name)) {
+		xdfree(XG(tracedatafile_name));
+		XG( tracedatafile_name) = NULL;
 	}
 }
 
