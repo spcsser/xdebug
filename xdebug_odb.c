@@ -232,7 +232,7 @@ void xdebug_odb_handle_exception(zval *exception) {
 	xdebug_str str = { 0, 0, NULL };
 	xdebug_str dstr = { 0, 0, NULL };
 
-	char *fn_nr=xdebug_sprintf("%d", ++XG(function_count));
+	char *fn_nr=xdebug_sprintf("%d", XG(function_count));
 
 	xdebug_str_add(&str, "\n{\"lvl\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", XG(level)), 1);
@@ -244,10 +244,11 @@ void xdebug_odb_handle_exception(zval *exception) {
 			start_time)), 1);
 	xdebug_str_add(&str, ",\"mem\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%lu", XG_MEMORY_USAGE()), 1);
+	xdebug_str_add(&str, ",\"nme\":\"Exception\"}", 0);
 
 	xdebug_str_add(&dstr, "\n{\"aid\":", 0);
 	xdebug_str_add(&dstr, fn_nr, 1);
-	xdebug_str_add(&dstr, ",\"atp\":6", 0);
+	xdebug_str_add(&dstr, ",\"atp\":6}", 0);
 
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
 		fclose(XG(trace_file));
@@ -264,13 +265,12 @@ void xdebug_odb_handle_exception(zval *exception) {
 	}
 }
 
-char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *filename, int lineno TSRMLS_DC)
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, char *op, char *filename, int lineno TSRMLS_DC)
 {
 	int j = 0;
 	xdebug_str str = {0, 0, NULL};
 	xdebug_str dstr = {0, 0, NULL};
 	char *tmp_value=0;
-	char *tmp_varval=0;
 
 	xdebug_str_add(&str, "\n{\"lvl\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", i->level), 1);
@@ -328,9 +328,6 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 	if(retval && retval !=NULL){
 		tmp_value = xdebug_get_zval_json_value(retval, 1, NULL);
 	}
-	if(varval && varval !=NULL){
-		tmp_varval = xdebug_get_zval_json_value(varval, 1, NULL);
-	}
 
 	if (tmp_value) {
 		xdebug_str_add(&dstr, ",\"val\":", 0);
@@ -339,15 +336,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		xdebug_str_add(&dstr, ",\"val\":\"NULL\"", 0);
 	}
 
-	if(tmp_varval){
-		xdebug_str_add(&dstr, ",\"op\":\"", 0);
-		xdebug_str_add(&dstr, op, 0);
-		xdebug_str_add(&dstr, "\",\"vvl\":", 0);
-		xdebug_str_add(&dstr, tmp_varval, 1);
-		xdebug_str_add(&dstr, "}", 0);
-	}else{
-		xdebug_str_addl(&dstr, "}", 1, 0);
-	}
+	xdebug_str_addl(&dstr, "}", 1, 0);
 
 	if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
 		fclose(XG(tracedata_file));
@@ -508,7 +497,7 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 	//TODO if value unknown OR forceOutput, then print out the value, otherwise only put out reference
 
 	id = xdebug_sprintf("%lu",*struc);
-	if((*struc)->XDEBUG_REFCOUNT < 2){ //if only one time referenced then probably only short term var, changing
+	if((*struc)->XDEBUG_REFCOUNT && (*struc)->XDEBUG_REFCOUNT < 2){ //if only one time referenced then probably only short term var, changing
 		forceOutput = 1;
 	}
 	// only add id if not known and no forcing
