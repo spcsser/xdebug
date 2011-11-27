@@ -68,7 +68,7 @@ int xdebug_common_override_handler(ZEND_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_DISPATCH;
 }
 
-static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long int *mid TSRMLS_DC)
+static char *xdebug_find_var_name(zend_execute_data *execute_data, zval **mid TSRMLS_DC)
 {
 	zend_op       *cur_opcode, *next_opcode, *prev_opcode = NULL, *opcode_ptr;
 	zval          *dimval;
@@ -182,9 +182,9 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
 			xdebug_str_add(&name, "$this", 0);
 		}else if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode == ZEND_FETCH_W ){
-                *mid=(unsigned long int) xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(op2), &prev_opcode->op2, execute_data->Ts, &is_var); 
+        	        *mid = xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(result), &(prev_opcode->result), execute_data->Ts, &is_var); 
 		}else{
-			*mid=(unsigned long int) xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+			*mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
 		}
 		//dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		xdebug_str_add(&name, "->", 0);
@@ -196,9 +196,9 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 			xdebug_str_add(&name, "[]", 0);
 		}else{
 			if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode ==ZEND_FETCH_W){
-				 *mid=(unsigned long int) xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+				*mid = xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(result), &(prev_opcode->result), execute_data->Ts, &is_var);
 			}else{
-				 *mid=(unsigned long int) xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+				*mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
 			}
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, opcode_ptr->XDEBUG_TYPE(op2), &opcode_ptr->op2, execute_data->Ts, &is_var), 0, NULL);
 			xdebug_str_add(&name, xdebug_sprintf("[%s]", zval_value), 1);
@@ -222,7 +222,7 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 	zval          *val = NULL;
 	char          *t;
 	int            is_var;
-	unsigned long int mid=0;
+	zval          *mid = NULL;
 	function_stack_entry *fse;
 
 	cur_opcode = *EG(opline_ptr);

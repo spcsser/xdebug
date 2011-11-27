@@ -4,8 +4,24 @@
 #include "xdebug_tracing.h"
 #include "xdebug_var.h"
 #include "xdebug_odb.h"
+#include "ext/spl/php_spl.h"
 
 //ZEND_EXTERN_MODULE_GLOBALS(xdebug)
+
+static char *xdebug_print_hash_value(zval *struc){
+
+	if(!struc){
+		return xdstrdup("0t");
+	}
+	char *hash;
+	hash = xdmalloc(33);
+	if(Z_TYPE_P(struc) == IS_OBJECT){
+		php_spl_object_hash(struc, hash TSRMLS_CC);
+	}else{
+		hash=xdebug_sprintf("%lu",(unsigned long int) &struc->value);
+	}
+	return hash;
+}
 
 void xdebug_odb_call_entry_dtor(void *elem)
 {
@@ -265,7 +281,7 @@ void xdebug_odb_handle_exception(zval *exception) {
 	}
 }
 
-char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, unsigned long int mid, char *op, char *filename, int lineno TSRMLS_DC)
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *mid, char *op, char *filename, int lineno TSRMLS_DC)
 {
 	int j = 0;
 	xdebug_str str = {0, 0, NULL};
@@ -313,7 +329,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 	}*/
 
 	xdebug_str_add(&dstr, ",\"mid\":", 0);
-	xdebug_str_add(&dstr, xdebug_sprintf("%lu", mid), 1);
+	xdebug_str_add(&dstr, xdebug_print_hash_value(mid), 1);
 
 	xdebug_str_add(&str, ",\"nme\":\"", 0);
 	xdebug_str_add(&str, varname, 0);
@@ -500,7 +516,8 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 	}
 	//TODO if value unknown OR forceOutput, then print out the value, otherwise only put out reference
 
-	id = xdebug_sprintf("%lu",*struc);
+	//id = xdebug_sprintf("%lu",(*struc)->value);
+	id=xdebug_print_hash_value(*struc);
 	if((*struc)->XDEBUG_REFCOUNT && (*struc)->XDEBUG_REFCOUNT < 2){ //if only one time referenced then probably only short term var, changing
 		forceOutput = 1;
 	}
