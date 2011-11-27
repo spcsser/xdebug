@@ -11,7 +11,7 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int debug_
 char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options);
 void xdebug_odb_call_entry_dtor(void *elem);
 
-char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, char *op, char *file, int fileno TSRMLS_DC);
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, unsigned long int mid, char *op, char *file, int fileno TSRMLS_DC);
 
 char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence TSRMLS_DC);
 

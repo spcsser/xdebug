@@ -212,6 +212,7 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 	zval          *val = NULL;
 	char          *t;
 	int            is_var;
+	unsigned long int mid=0;
 	function_stack_entry *fse;
 
 	cur_opcode = *EG(opline_ptr);
@@ -247,7 +248,7 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 
 		if(XG(trace_format) == 11){
 			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
-			t = xdebug_return_trace_assignment_json(fse, full_varname, val, op, file, lineno TSRMLS_CC);
+			t = xdebug_return_trace_assignment_json(fse, full_varname, val, mid, op, file, lineno TSRMLS_CC);
 		}else{
 			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
 			t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);

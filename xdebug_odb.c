@@ -265,7 +265,7 @@ void xdebug_odb_handle_exception(zval *exception) {
 	}
 }
 
-char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, char *op, char *filename, int lineno TSRMLS_DC)
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, unsigned long int mid, char *op, char *filename, int lineno TSRMLS_DC)
 {
 	int j = 0;
 	xdebug_str str = {0, 0, NULL};
@@ -292,6 +292,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 	xdebug_str_add(&dstr, xdebug_sprintf("%d", XG(function_count)), 1);
 	xdebug_str_add(&dstr, ",\"atp\":2", 0);
 
+	/*
 	if(EG(This)){
 		char* tmp_val;
 		tmp_val=xdebug_get_zval_json_value(EG(This), 0, NULL);
@@ -309,7 +310,10 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 	}else{
 		xdebug_str_add(&dstr, ",\"ast\":", 0);
 		xdebug_str_add(&dstr, xdebug_sprintf("%lu",&i->execute_data->symbol_table), 1);
-	}
+	}*/
+
+	xdebug_str_add(&dstr, ",\"mid\":", 0);
+	xdebug_str_add(&dstr, xdebug_sprintf("%lu", mid), 1);
 
 	xdebug_str_add(&str, ",\"nme\":\"", 0);
 	xdebug_str_add(&str, varname, 0);
