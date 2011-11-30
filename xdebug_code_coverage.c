@@ -181,10 +181,11 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, zval **mid TS
 		dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
 			xdebug_str_add(&name, "$this", 0);
+			*mid=EG(This);
 		}else if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode == ZEND_FETCH_W ){
         	        *mid = xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(result), &(prev_opcode->result), execute_data->Ts, &is_var); 
 		}else{
-			*mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
+			*mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &(cur_opcode->op1), execute_data->Ts, &is_var);
 		}
 		//dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		xdebug_str_add(&name, "->", 0);
@@ -195,16 +196,22 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, zval **mid TS
 		if (next_opcode->opcode == ZEND_OP_DATA && cur_opcode->XDEBUG_TYPE(op2) == IS_UNUSED) {
 			xdebug_str_add(&name, "[]", 0);
 		}else{
-			if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode ==ZEND_FETCH_W){
+		/*	if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode ==ZEND_FETCH_W){
 				*mid = xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(result), &(prev_opcode->result), execute_data->Ts, &is_var);
 			}else{
 				*mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
-			}
+			}*/
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, opcode_ptr->XDEBUG_TYPE(op2), &opcode_ptr->op2, execute_data->Ts, &is_var), 0, NULL);
 			xdebug_str_add(&name, xdebug_sprintf("[%s]", zval_value), 1);
 			xdfree(zval_value);		
 		}
+		if(prev_opcode->opcode == ZEND_FETCH_DIM_W || prev_opcode->opcode == ZEND_FETCH_OBJ_W || prev_opcode->opcode ==ZEND_FETCH_W){
+                       //*mid = xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(result), &(prev_opcode->result), execute_data->Ts, &is_var);
+                }else{
+                       *mid = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &(cur_opcode->op1), execute_data->Ts, &is_var);
+                }
 	}
+
 
 	xdfree(options->runtime);
 	xdfree(options);

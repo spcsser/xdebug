@@ -14,12 +14,12 @@ static char *xdebug_print_hash_value(zval *struc){
 		return xdstrdup("0t");
 	}
 	char *hash;
-	hash = xdmalloc(33);
-	if(Z_TYPE_P(struc) == IS_OBJECT){
-		php_spl_object_hash(struc, hash TSRMLS_CC);
-	}else{
+	//hash = xdmalloc(33);
+	//if(Z_TYPE_P(struc) == IS_OBJECT){
+		//php_spl_object_hash(struc, hash TSRMLS_CC);
+	//}else{
 		hash=xdebug_sprintf("%lu",(unsigned long int) &struc->value);
-	}
+	//}
 	return hash;
 }
 
@@ -59,9 +59,9 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 #else
 		//xdebug_str_add(&str, "\t", 0);
 #endif
-		if(strstr(tmp_name,"->__construct")){
-			i->function.type=XFUNC_NEW;
-		}
+		//if(strstr(tmp_name,"->__construct")){
+		//	i->function.type=XFUNC_NEW;
+		//}
 
 		xdebug_str_add(&str, ",\"nme\":\"", 0);
 		xdebug_str_add(&str, tmp_name, 0);
@@ -99,7 +99,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 
 		/* First the object scope*/
 		char *tmp_obj;
-		tmp_obj = xdebug_get_zval_json_value(EG(This), i->function.type==XFUNC_NEW, NULL);
+		tmp_obj = xdebug_get_zval_json_value(EG(This), 0, NULL);
 		if(tmp_obj) {
 			xdebug_str_add(&dstr, tmp_obj, 1);
 		} else {
