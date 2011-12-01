@@ -11,7 +11,7 @@
 static char *xdebug_print_hash_value(zval *struc){
 
 	if(!struc){
-		return xdstrdup("0t");
+		return xdstrdup("0");
 	}
 	char *hash;
 	//hash = xdmalloc(33);
@@ -21,6 +21,42 @@ static char *xdebug_print_hash_value(zval *struc){
 		hash=xdebug_sprintf("%lu",(unsigned long int) &struc->value);
 	//}
 	return hash;
+}
+
+#define T(offset) (*(temp_variable *)((char *) Ts + offset))
+
+zend_class_entry *xdebug_odb_get_class_entry(zend_execute_data *zdata, int node_type, XDEBUG_ZNODE *node, temp_variable *Ts, int *is_var){
+	switch(node_type){
+		case IS_CONST:
+			fprintf(stderr, "\nIS_CONST\n");
+			break;
+		case IS_TMP_VAR:
+			fprintf(stderr, "\nIS_TMP_VAR\n");
+			break;
+		case IS_VAR:
+			*is_var = 1;
+#if PHP_VERSION_ID >= 50399
+			if (T(node->var).class_entry) {
+				return T(node->var).class_entry;
+#else
+			if (T(node->u.var).class_entry){
+				return T(node->u.var).class_entry;
+#endif
+			} else {
+				fprintf(stderr, "\nIS_VAR\n");
+			}
+			break;
+		case IS_CV:
+			fprintf(stderr, "\nIS_CV\n");
+			break;
+		case IS_UNUSED:
+			fprintf(stderr, "\nIS_UNUSED\n");
+			break;
+		default:
+			fprintf(stderr, "\ndefault %d\n", node_type);
+			break;
+	}
+	return NULL;
 }
 
 void xdebug_odb_call_entry_dtor(void *elem)
@@ -60,7 +96,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		//xdebug_str_add(&str, "\t", 0);
 #endif
 		//if(strstr(tmp_name,"->__construct")){
-		//	i->function.type=XFUNC_NEW;
+			//i->function.type=XFUNC_NEW;
 		//}
 
 		xdebug_str_add(&str, ",\"nme\":\"", 0);
@@ -99,7 +135,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 
 		/* First the object scope*/
 		char *tmp_obj;
-		tmp_obj = xdebug_get_zval_json_value(EG(This), 0, NULL);
+		tmp_obj = xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL);
 		if(tmp_obj) {
 			xdebug_str_add(&dstr, tmp_obj, 1);
 		} else {
@@ -328,7 +364,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		xdebug_str_add(&dstr, xdebug_sprintf("%lu",&i->execute_data->symbol_table), 1);
 	}*/
 
-	xdebug_str_add(&dstr, ",\"mid\":", 0);
+	xdebug_str_add(&dstr, ",\"id\":", 0);
 	xdebug_str_add(&dstr, xdebug_print_hash_value(mid), 1);
 
 	xdebug_str_add(&str, ",\"nme\":\"", 0);

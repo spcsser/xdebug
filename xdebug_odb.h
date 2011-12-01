@@ -1,9 +1,13 @@
+#include "ext/standard/php_string.h"
+#include "zend.h"
+#include "xdebug_compat.h"
+
 #ifndef XDEBUG_ODB_H
 #define XDEBUG_ODB_H
 
-#include "ext/standard/php_string.h"
-
 ZEND_EXTERN_MODULE_GLOBALS(xdebug)
+
+zend_class_entry *xdebug_odb_get_class_entry(zend_execute_data *zdata, int node_type, XDEBUG_ZNODE *node, temp_variable *Ts, int *is_var);
 
 void xdebug_odb_handle_exception(zval *exception);
 void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno);
