@@ -134,8 +134,10 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		xdebug_str_add(&dstr, ",\"atp\":0,\"obj\":",0);
 
 		/* First the object scope*/
-		char *tmp_obj;
-		tmp_obj = xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL);
+		char *tmp_obj=NULL;
+		if(EG(This)){
+			tmp_obj = xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL);
+		}
 		if(tmp_obj) {
 			xdebug_str_add(&dstr, tmp_obj, 1);
 		} else {
