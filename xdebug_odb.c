@@ -391,7 +391,7 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 		xdebug_str_add(&dstr, ",\"val\":", 0);
 		xdebug_str_add(&dstr, tmp_value, 1);
 	} else {
-		xdebug_str_add(&dstr, ",\"val\":\"NULL\"", 0);
+		xdebug_str_add(&dstr, ",\"val\":{\"typ\":\"NULL\",\"id\":0}", 0);
 	}
 
 	xdebug_str_addl(&dstr, "}", 1, 0);
@@ -595,17 +595,17 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 			case IS_LONG:
 			xdebug_str_add(str, "{\"typ\":\"int\",\"id\":", 0);
 			xdebug_str_add(str, id, 0);
-			xdebug_str_add(str, ",\"val\":\"", 0);
+			xdebug_str_add(str, ",\"val\":", 0);
 			xdebug_str_add(str, xdebug_sprintf("%ld", Z_LVAL_PP(struc)), 1);
-			xdebug_str_add(str, "\"}", 0);
+			xdebug_str_add(str, "}", 0);
 			break;
 
 			case IS_DOUBLE:
 			xdebug_str_add(str, "{\"typ\":\"double\",\"id\":", 0);
 			xdebug_str_add(str, id, 0);
-			xdebug_str_add(str, ",\"val\":\"", 0);
+			xdebug_str_add(str, ",\"val\":", 0);
 			xdebug_str_add(str, xdebug_sprintf("%.*G", (int) EG(precision), Z_DVAL_PP(struc)), 1);
-			xdebug_str_add(str, "\"}",  0);
+			xdebug_str_add(str, "}",  0);
 			break;
 
 			case IS_STRING:
@@ -668,9 +668,9 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 				xdebug_str_add(str, class_name, 0);
 				xdebug_str_add(str, "\",\"id\":", 0);
 				xdebug_str_add(str, id, 0);
-				xdebug_str_add(str, ",\"cid\":\"", 0);
+				xdebug_str_add(str, ",\"cid\":", 0);
 				xdebug_str_add(str, xdebug_sprintf("%lu", zce), 1);
-				xdebug_str_add(str, "\",\"val\":[", 0);
+				xdebug_str_add(str, ",\"val\":[", 0);
 
 
 				if (level <= options->max_depth) {

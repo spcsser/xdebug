@@ -123,7 +123,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 				zend_lookup_class(class_name, strlen(class_name), &zce TSRMLS_CC);
 				*mid=(unsigned long int)*zce;
 				//*mid = (unsigned long int) xdebug_get_zval(execute_data, (prev_opcode-1)->XDEBUG_TYPE(op2), &(prev_opcode-1)->op2, execute_data->Ts, &is_var);
-				xdebug_str_add(&name, xdebug_sprintf("%s", class_name), 1);
+				xdebug_str_add(&name, xdebug_sprintf("%s::", class_name), 1);
 			}
 		}
 	}
