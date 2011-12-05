@@ -112,7 +112,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		
 		opcode_ptr=prev_opcode-1;
 		
-		if(opcode_ptr->XDEBUG_TYPE(op2)==IS_UNUSED){
+		if(opcode_ptr->XDEBUG_TYPE(op2)==IS_UNUSED || execute_data->Ts->class_entry){
 			xdebug_str_add(&name, "self::", 0);
 			*mid=(unsigned long int) execute_data->Ts->class_entry;
 		}else{
@@ -282,7 +282,9 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 		} else if (next_opcode->opcode == ZEND_OP_DATA) {
 			val = xdebug_get_zval(execute_data, next_opcode->XDEBUG_TYPE(op1), &next_opcode->op1, execute_data->Ts, &is_var);
 		} else if(cur_opcode->opcode == ZEND_ASSIGN_REF){
-			val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
+			//val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
+		} else if(cur_opcode->opcode == ZEND_ASSIGN_CONCAT){
+			val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &cur_opcode->op1, execute_data->Ts, &is_var);
 		} else {
 			val = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		}
