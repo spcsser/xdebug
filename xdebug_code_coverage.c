@@ -106,34 +106,31 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	options = xdebug_var_export_options_from_ini(TSRMLS_C);
 	options->no_decoration = 1;
 
-	if(is_static){
-		zval *class_val=NULL;
-		zend_class_entry **zce;
-		
-		opcode_ptr=prev_opcode-1;
-		
-		if(opcode_ptr->XDEBUG_TYPE(op2)==IS_UNUSED || execute_data->Ts->class_entry){
-			xdebug_str_add(&name, "self::", 0);
-			*mid=(unsigned long int) execute_data->Ts->class_entry;
-		}else{
-			class_val=xdebug_get_zval(execute_data, (opcode_ptr)->XDEBUG_TYPE(op2), &(opcode_ptr)->op2, execute_data->Ts, &is_var);
-			if(class_val){
-				class_name=xdebug_get_zval_value(class_val, 0, options);
-				//fprintf(stderr, "\n%s\n", class_name);
-				zend_lookup_class(class_name, strlen(class_name), &zce TSRMLS_CC);
-				*mid=(unsigned long int)*zce;
-				//*mid = (unsigned long int) xdebug_get_zval(execute_data, (prev_opcode-1)->XDEBUG_TYPE(op2), &(prev_opcode-1)->op2, execute_data->Ts, &is_var);
-				xdebug_str_add(&name, xdebug_sprintf("%s::", class_name), 1);
-			}
-		}
-	}
-
 	if (cur_opcode->XDEBUG_TYPE(op1) == IS_CV) {
 		xdebug_str_add(&name, "$", 0);
 		xdebug_str_add(&name, xdebug_sprintf("%s", zend_get_compiled_variable_name(op_array, cur_opcode->XDEBUG_ZNODE_ELEM(op1, var), &cv_len)), 1);
 	} else if (cur_opcode->XDEBUG_TYPE(op1) == IS_VAR && cur_opcode->opcode == ZEND_ASSIGN && prev_opcode->opcode == ZEND_FETCH_W) {
 		if (is_static) {
 			//xdebug_str_add(&name, "self::", 0);
+			//*mid=(unsigned long int) execute_data->Ts->class_entry;
+			opcode_ptr=prev_opcode-1;
+			if(opcode_ptr->opcode == ZEND_FETCH_CLASS && opcode_ptr->XDEBUG_TYPE(op2) != IS_UNUSED){
+				char *class_val;
+	                	zend_class_entry **zce;
+        		        //opcode_ptr=cur_opcode-2;
+        	        	class_val=xdebug_get_zval(execute_data, (opcode_ptr)->XDEBUG_TYPE(op2), &(opcode_ptr)->op2, execute_data->Ts, &is_var);
+		                if(class_val){
+        		                class_name=xdebug_get_zval_value(class_val, 0, options);
+		                       	zend_lookup_class(class_name, strlen(class_name), &zce TSRMLS_CC);
+	        	                *mid=(unsigned long int)*zce;
+                        		xdebug_str_add(&name, xdebug_sprintf("%s::", class_name), 1);
+				}else{
+					xdebug_str_add(&name, "self::", 0);
+				}
+                	}else{
+				xdebug_str_add(&name, "self::", 0);
+			}
+
 		} else {
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, prev_opcode->XDEBUG_TYPE(op1), &prev_opcode->op1, execute_data->Ts, &is_var), 0, options);
 			xdebug_str_add(&name, "$", 0);
@@ -141,7 +138,10 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		}
 	} else if (is_static) { // todo : see if you can change this and the previous cases around
 		//xdebug_str_add(&name, "self::", 0);
+		*mid=(unsigned long int) execute_data->Ts->class_entry;
+		xdebug_str_add(&name, "self::", 0);
 	}
+
 	if (cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR ) {
 		if (cur_opcode->extended_value == ZEND_ASSIGN_OBJ) {
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, options);

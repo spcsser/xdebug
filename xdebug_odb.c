@@ -559,6 +559,9 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 	if((*struc)->XDEBUG_REFCOUNT && (*struc)->XDEBUG_REFCOUNT < 2){ //if only one time referenced then probably only short term var, changing
 		forceOutput = 1;
 	}
+	if(level > 1){
+		forceOutput=0;
+	}
 	// only add id if not known and no forcing
 	if(forceOutput == 0 && (zend_hash_find(&XG(known_values),
 							id, sizeof(id),
@@ -573,9 +576,9 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 			//zend_hash_update(&XG(known_values), id, sizeof(id), (void**)&struc, sizeof(zval*), NULL);
 		//}
 
-		if(level>1){
-			forceOutput=0;
-		}
+		//if(level>1){
+		//	forceOutput=0;
+		//}
 
 		switch (Z_TYPE_PP(struc)) {
 			case IS_BOOL:
