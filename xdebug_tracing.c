@@ -443,7 +443,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	} else {
 		XG(trace_file) = xdebug_fopen(filename, "w", "xt", (char**) &tmp_fname);
 	}
-	xdfree(filename);
+	//xdfree(filename);
 	if (options & XDEBUG_TRACE_OPTION_COMPUTERIZED) {
 		XG(trace_format) = 1;
 	}
@@ -451,7 +451,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 		XG(trace_format) = 2;
 	}
 	if(XG(trace_format) == 11) {
-		filename_data = xdebug_sprintf("%s_data",fname);
+		filename_data = xdebug_sprintf("%s_data",filename);
 
 		if (options & XDEBUG_TRACE_OPTION_APPEND) {
 			XG(tracedata_file) = xdebug_fopen(filename_data, "a", "xt", (char**) &tmp_fdname);
@@ -462,6 +462,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 			XG(tracedatafile_name) = tmp_fdname;
 		}
 	}
+	xdfree(filename);
 	if (XG(trace_file)) {
 		if (XG(trace_format) == 1||XG(trace_format) == 11) {
 			fprintf(XG(trace_file), "Version: %s\n", XDEBUG_VERSION);
