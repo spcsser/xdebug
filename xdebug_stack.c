@@ -558,7 +558,7 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 	exception_class = PG(exception_class);
 #endif
 
-	if(XG(trace_format) == 11){
+	if(XG(do_trace) && XG(trace_file) && XG(trace_format) == 11){
 		xdebug_odb_handle_error(type, error_filename, error_lineno, error_handling, error_type_str, buffer, exception_class);
 	}
 	/* according to error handling mode, suppress error, throw exception or show it */

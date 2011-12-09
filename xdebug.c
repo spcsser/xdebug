@@ -1816,7 +1816,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 			level = 0;
 		}
 		
-		if(XG(trace_format)==11){
+		if(XG(do_trace) && XG(trace_file) && XG(trace_format)==11){
 			//xdebug_odb_handle_statement(op_array, file, lineno);
 		}
 
