@@ -303,7 +303,16 @@ void xdebug_odb_handle_error(int type, const char *error_filename, const uint er
 	xdebug_str_add(&dstr, error_message, 0);
 	xdebug_str_add(&dstr, "\"}", 0);
 	
-	XG(level)=0;
+	switch(type){
+		case E_CORE_ERROR:
+		case E_COMPILE_ERROR:
+		case E_PARSE:
+		case E_ERROR:
+			XG(level)=0;
+			break;
+		default:
+			break;
+	}
 
         if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
                 fclose(XG(tracedata_file));
@@ -346,7 +355,7 @@ void xdebug_odb_handle_exception(zval *exception TSRMLS_DC) {
 			start_time)), 1);
 	xdebug_str_add(&str, ",\"fle\":\"", 0);
 	xdebug_str_add(&str, Z_STRVAL_P(file), 0);
-	xdebug_str_add(&str, "\",\"lne\":\"", 0);
+	xdebug_str_add(&str, "\",\"lne\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", Z_LVAL_P(line)), 0);
 	xdebug_str_add(&str, ",\"mem\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%lu", XG_MEMORY_USAGE()), 1);
