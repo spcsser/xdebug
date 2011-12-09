@@ -272,15 +272,69 @@ void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno
 	}
 }
 
-void xdebug_odb_handle_exception(zval *exception) {
-	xdebug_str str = { 0, 0, NULL };
-	xdebug_str dstr = { 0, 0, NULL };
+void xdebug_odb_handle_error(int type, const char *error_filename, const uint error_lineno, error_handling_t error_handling, char *error_type_str, char *error_message, zend_class_entry *exception_class) {
+	xdebug_str str = { 0, 0, NULL};
+	xdebug_str dstr = { 0, 0, NULL};
+
+	char *fn_nr=xdebug_sprintf("%d", ++XG(function_count));
+
+        xdebug_str_add(&str, "\n{\"lvl\":", 0);
+        xdebug_str_add(&str, xdebug_sprintf("%d", XG(level)), 1);
+        xdebug_str_add(&str, ",\"aid\":", 0);
+        xdebug_str_add(&str, fn_nr, 0);
+        xdebug_str_add(&str, ",\"atp\":7", 0);
+        xdebug_str_add(&str, ",\"tme\":", 0);
+        xdebug_str_add(&str, xdebug_sprintf("%f", xdebug_get_utime() - XG(
+                        start_time)), 1);
+        xdebug_str_add(&str, ",\"mem\":", 0);
+        xdebug_str_add(&str, xdebug_sprintf("%lu", XG_MEMORY_USAGE()), 1);
+        xdebug_str_add(&str, ",\"nme\":\"", 0);
+	xdebug_str_add(&str, error_type_str, 0);
+
+	xdebug_str_add(&str, "\",\"fle\":\"", 0);
+	xdebug_str_add(&str, error_filename, 0);
+	xdebug_str_add(&str, "\",\"lne\":", 0);
+	xdebug_str_add(&str, xdebug_sprintf("%d",error_lineno), 1);
+	xdebug_str_add(&str, "}", 0);
+
+        xdebug_str_add(&dstr, "\n{\"aid\":", 0);
+        xdebug_str_add(&dstr, fn_nr, 1);
+        xdebug_str_add(&dstr, ",\"atp\":7,\"msg\":\"", 0);
+	xdebug_str_add(&dstr, error_message, 0);
+	xdebug_str_add(&dstr, "\"}", 0);
 	
+	XG(level)=0;
+
+        if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
+                fclose(XG(tracedata_file));
+                XG(tracedata_file) = NULL;
+        } else {
+                fflush(XG(tracedata_file));
+        }
+
+        if (fprintf(XG(trace_file), "%s", str.d) < 0) {
+                fclose(XG(trace_file));
+                XG(trace_file) = NULL;
+        } else {
+                fflush(XG(trace_file));
+        }
+
+}
+
+void xdebug_odb_handle_exception(zval *exception TSRMLS_DC) {
+	xdebug_str str = { 0, 0, NULL };
+	xdebug_str dstr = { 0, 0, NULL };	
+	zval *message, *file, *line;
+	zend_class_entry *default_ce;
 	if(!exception){
 		return;
-	}	
+	}
+	default_ce = zend_exception_get_default(TSRMLS_C);
+	char *fn_nr=xdebug_sprintf("%d", ++XG(function_count));
 
-	char *fn_nr=xdebug_sprintf("%d", XG(function_count));
+	message = zend_read_property(default_ce, exception, "message", sizeof("message")-1, 0 TSRMLS_CC);
+	file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
+	line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
 	xdebug_str_add(&str, "\n{\"lvl\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", XG(level)), 1);
@@ -290,6 +344,10 @@ void xdebug_odb_handle_exception(zval *exception) {
 	xdebug_str_add(&str, ",\"tme\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%f", xdebug_get_utime() - XG(
 			start_time)), 1);
+	xdebug_str_add(&str, ",\"fle\":\"", 0);
+	xdebug_str_add(&str, Z_STRVAL_P(file), 0);
+	xdebug_str_add(&str, "\",\"lne\":\"", 0);
+	xdebug_str_add(&str, xdebug_sprintf("%d", Z_LVAL_P(line)), 0);
 	xdebug_str_add(&str, ",\"mem\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%lu", XG_MEMORY_USAGE()), 1);
 	xdebug_str_add(&str, ",\"nme\":\"Exception\"}", 0);
@@ -307,7 +365,9 @@ void xdebug_odb_handle_exception(zval *exception) {
 		xdebug_str_add(&dstr, fn_nr, 1);
 		xdebug_str_add(&dstr, "}", 0);
 	}
-	xdebug_str_add(&dstr, "}", 0);
+	xdebug_str_add(&dstr, ",\"msg\":\"", 0);
+	xdebug_str_add(&dstr, message, 0);
+	xdebug_str_add(&dstr, "\"}", 0);
 
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
 		fclose(XG(trace_file));

@@ -22,4 +22,6 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 #define return_trace_stack_frame_begin_json(i,f)  return_trace_stack_frame_json((i), (f), 0 TSRMLS_CC)
 #define return_trace_stack_frame_end_json(i,f)    return_trace_stack_frame_json((i), (f), 1 TSRMLS_CC)
 
+void xdebug_odb_handle_error(int type, const char *error_filename, const uint error_lineno, error_handling_t error_handling, char *error_type_str, char *error_message, zend_class_entry *exception_class);
+
 #endif

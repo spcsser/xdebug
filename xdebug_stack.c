@@ -24,6 +24,7 @@
 #include "xdebug_str.h"
 #include "xdebug_superglobals.h"
 #include "xdebug_var.h"
+#include "xdebug_odb.h"
 #include "ext/standard/html.h"
 
 #include "main/php_ini.h"
@@ -556,6 +557,10 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 	error_handling  = PG(error_handling);
 	exception_class = PG(exception_class);
 #endif
+
+	if(XG(trace_format) == 11){
+		xdebug_odb_handle_error(type, error_filename, error_lineno, error_handling, error_type_str, buffer, exception_class);
+	}
 	/* according to error handling mode, suppress error, throw exception or show it */
 	if (error_handling != EH_NORMAL && EG(in_execution)) {
 		switch (type) {
