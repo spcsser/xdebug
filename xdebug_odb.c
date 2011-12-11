@@ -18,7 +18,7 @@ static char *xdebug_print_hash_value(zval *struc){
 	//if(Z_TYPE_P(struc) == IS_OBJECT){
 		//php_spl_object_hash(struc, hash TSRMLS_CC);
 	//}else{
-		hash=xdebug_sprintf("%lu",(unsigned long int) &struc->value);
+	hash=xdebug_sprintf("%lu",(unsigned long int) &struc->value);
 	//}
 	return hash;
 }
@@ -72,8 +72,6 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 	char *mem;
 	time=xdebug_sprintf("%f", i->time - XG(start_time));
 	mem=xdebug_sprintf("%lu", i->memory);
-	//_sprintf(time, "%f", i->time - XG(start_time));
-	//_sprintf(mem, "%lu", i->memory);
 
 	xdebug_str str = {0, 0, NULL};
 	xdebug_str dstr = {0, 0, NULL};
@@ -95,10 +93,6 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 #else
 		//xdebug_str_add(&str, "\t", 0);
 #endif
-		//if(strstr(tmp_name,"->__construct")){
-			//i->function.type=XFUNC_NEW;
-		//}
-
 		xdebug_str_add(&str, ",\"nme\":\"", 0);
 		xdebug_str_add(&str, tmp_name, 0);
 		xdebug_str_add(&str, "\",\"ext\":", 0);
@@ -125,9 +119,6 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		xdebug_str_add(&str, xdebug_sprintf("%d", i->lineno), 1);
 		xdebug_str_add(&str, "}", 0);
 
-		/* Nr of arguments (11) */
-		//xdebug_str_add(&str, xdebug_sprintf(",\"argcount\":%d", i->varc), 1);
-
 		/* Time to collect the data into seperate string and then file*/
 		xdebug_str_add(&dstr, "\n{\"aid\":",0);
 		xdebug_str_add(&dstr, xdebug_sprintf("%d",fnr),1);
@@ -145,7 +136,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		}
 		xdebug_str_add(&dstr, ",\"arg\":[", 0);
 
-		if (XG(collect_params) > 0 && i->varc > 0) {
+		if (i->varc > 0) {
 			int j = 0; /* Counter */
 
 			/* Arguments (12-...) */
@@ -184,8 +175,6 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		}
 		xdebug_str_free(&dstr);
 
-		/* Trailing \n */
-		//xdebug_str_add(&dstr, "]}", 0);
 	} else if (whence == 1) { /* end */
 		xdebug_str_add(&str, ",\"atp\":1", 0);
 		xdebug_str_add(&str, ",\"tme\":", 0);
@@ -196,6 +185,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 #else
 
 #endif
+		/*TODO check how it is possible to include the return line*/
 		//xdebug_str_add(&str, ",\"lne\":", 0);
 		//xdebug_str_add(&str, xdebug_sprintf("%d", EG(current_execute_data)->opline->lineno), 1);
 		xdebug_str_add(&str, "}", 0);
@@ -285,6 +275,10 @@ void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno
 void xdebug_odb_handle_exception(zval *exception) {
 	xdebug_str str = { 0, 0, NULL };
 	xdebug_str dstr = { 0, 0, NULL };
+	
+	if(!exception){
+		return;
+	}	
 
 	char *fn_nr=xdebug_sprintf("%d", XG(function_count));
 
@@ -302,7 +296,18 @@ void xdebug_odb_handle_exception(zval *exception) {
 
 	xdebug_str_add(&dstr, "\n{\"aid\":", 0);
 	xdebug_str_add(&dstr, fn_nr, 1);
-	xdebug_str_add(&dstr, ",\"atp\":6}", 0);
+	xdebug_str_add(&dstr, ",\"atp\":6,\"val\":", 0);
+	
+	fn_nr = xdebug_get_zval_json_value(exception, 0, NULL);
+	if(fn_nr) {
+		xdebug_str_add(&dstr, fn_nr, 1);
+	}else{
+		fn_nr = xdebug_print_hash_value(exception);
+		xdebug_str_add(&dstr, "{\"type\":\"NULL\",\"id\":", 0);
+		xdebug_str_add(&dstr, fn_nr, 1);
+		xdebug_str_add(&dstr, "}", 0);
+	}
+	xdebug_str_add(&dstr, "}", 0);
 
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
 		fclose(XG(trace_file));
@@ -345,26 +350,6 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 	xdebug_str_add(&dstr, "\n{\"aid\":",  0);
 	xdebug_str_add(&dstr, xdebug_sprintf("%d", XG(function_count)), 1);
 	xdebug_str_add(&dstr, ",\"atp\":2", 0);
-
-	/*
-	if(EG(This)){
-		char* tmp_val;
-		tmp_val=xdebug_get_zval_json_value(EG(This), 0, NULL);
-		if(tmp_val){
-			xdebug_str_add(&dstr, ",\"obj\":", 0);
-			xdebug_str_add(&dstr, tmp_val, 1);
-		}else{
-			xdebug_str_add(&dstr, ",\"id\":", 0);
-			xdebug_str_add(&dstr, xdebug_sprintf("%lu",&i->This), 1);
-		}
-	}else if(i->function.class){
-		xdebug_str_add(&dstr, ",\"cid\":\"", 0);
-		xdebug_str_add(&dstr, i->function.class, 0);
-		xdebug_str_add(&dstr, "\"", 0);
-	}else{
-		xdebug_str_add(&dstr, ",\"ast\":", 0);
-		xdebug_str_add(&dstr, xdebug_sprintf("%lu",&i->execute_data->symbol_table), 1);
-	}*/
 
 	xdebug_str_add(&dstr, ",\"id\":", 0);
 	xdebug_str_add(&dstr, xdebug_print_hash_value(mid), 1);
@@ -423,6 +408,9 @@ char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_op
 
 	if (!options) {
 		options = xdebug_var_export_options_from_ini(TSRMLS_C);
+		options->max_children = 1048576;
+		options->max_data = 1073741824;
+		options->max_depth = 4096;
 		default_options = 1;
 	}
 
