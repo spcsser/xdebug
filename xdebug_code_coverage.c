@@ -263,7 +263,7 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 	if (do_cc && XG(do_code_coverage)) {
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
-	if (XG(do_trace) && XG(trace_file) && XG(collect_assignments)) {
+	if (XG(do_trace) && XG(trace_file) && (XG(collect_assignments)|| XG(trace_format==11))) {
 		full_varname = xdebug_find_var_name(execute_data, &mid TSRMLS_CC);
 
 		if (cur_opcode->opcode >= ZEND_PRE_INC && cur_opcode->opcode <= ZEND_POST_DEC) {

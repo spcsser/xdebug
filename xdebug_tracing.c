@@ -461,6 +461,9 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 		if(XG(tracedata_file)) {
 			XG(tracedatafile_name) = tmp_fdname;
 		}
+		XG(collect_return)=1;
+		XG(collect_assignments)=1;
+		XG(collect_params)=1;
 	}
 	xdfree(filename);
 	if (XG(trace_file)) {
