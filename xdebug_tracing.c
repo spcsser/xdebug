@@ -100,14 +100,8 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 	xdebug_str str = {0, 0, NULL};
 	char      *tmp_value;
 
-	if (XG(trace_format) == 2) {//HTML
+	if (XG(trace_format) == 2 || XG(trace_format) == 1) {//HTML
 		return xdstrdup("");
-	} else if (XG(trace_format) == 1) { //Computerized
-		xdebug_str_addl(&str, "\t", 1, 0);
-		tmp_value = xdebug_get_zval_value(retval, 0, NULL);
-		if (tmp_value) {
-			xdebug_str_add(&str, tmp_value, 1);
-		}
 	} else if(XG(trace_format == 11)) {//JSON
 
 		xdebug_str_add(&str, "\n{\"aid\":", 0);
@@ -144,9 +138,6 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 			xdebug_str_add(&str, tmp_value, 1);
 		}
 		xdebug_str_addl(&str, "\n", 2, 0);
-	}
-	if((XG(trace_format)!= 11)) {
-		xdebug_str_addl(&str, "\n", 1, 0);
 	}
 	return str.d;
 }

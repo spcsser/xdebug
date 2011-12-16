@@ -1048,9 +1048,9 @@ static void xdebug_throw_exception_hook(zval *exception TSRMLS_DC)
 	file =    zend_read_property(default_ce, exception, "file",    sizeof("file")-1,    0 TSRMLS_CC);
 	line =    zend_read_property(default_ce, exception, "line",    sizeof("line")-1,    0 TSRMLS_CC);
 
-	if (Z_TYPE_P(message) != IS_STRING || Z_TYPE_P(file) != IS_STRING || Z_TYPE_P(line) != IS_LONG) {
-		php_error(E_ERROR, "Your exception class uses incorrect types for common properties: 'message' and 'file' need to be a string and 'line' needs to be an integer.");
-	}
+	convert_to_string_ex(&message);
+	convert_to_string_ex(&file);
+	convert_to_long_ex(&line);
 
 #if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2) || PHP_MAJOR_VERSION >= 6
 	previous_exception = zend_read_property(default_ce, exception, "previous", sizeof("previous")-1, 1 TSRMLS_CC);
@@ -1796,7 +1796,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
 
-	if (XG(remote_enabled) || XG(do_trace)) {
+	if (XG(remote_enabled) || (XG(do_trace) && XG(trace_file) && XG(trace_format)==11)) {
 
 		if (XG(context).do_break) {
 			XG(context).do_break = 0;

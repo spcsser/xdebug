@@ -201,7 +201,6 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	}
 
 	if (cur_opcode->opcode == ZEND_ASSIGN_OBJ) {
-		dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
 			xdebug_str_add(&name, "$this", 0);
 			*mid=(unsigned long int) EG(This);
@@ -210,7 +209,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		}else{
 			*mid =(unsigned long int) xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &(cur_opcode->op1), execute_data->Ts, &is_var);
 		}
-		//dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
+		dimval = xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var);
 		xdebug_str_add(&name, "->", 0);
 		xdebug_str_add(&name, xdebug_sprintf("%s", Z_STRVAL_P(dimval)), 1);
 	}
@@ -234,7 +233,6 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
                        *mid =(unsigned long int) xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op1), &(cur_opcode->op1), execute_data->Ts, &is_var);
                 }
 	}
-
 
 	xdfree(options->runtime);
 	xdfree(options);
