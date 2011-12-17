@@ -164,7 +164,39 @@ zval* xdebug_get_php_symbol(char* name, int name_length)
 	if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
 		return *retval;
 	}
+
+	if(EG(This)){
+		st=zend_std_get_properties(EG(This));
+		if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+                	return *retval;
+        	}
+	}
+
 	return NULL;
+}
+
+unsigned long int xdebug_get_php_symbol_table(char *name, int name_length){
+	HashTable           *st = NULL;
+        zval               **retval;
+        TSRMLS_FETCH();
+
+        st = XG(active_symbol_table);
+        if (st && st->nNumOfElements && zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+        	 return (unsigned long int) st;
+	}
+
+        st = EG(active_op_array)->static_variables;
+        if (st) {
+                if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+			 return (unsigned long int) st;
+                }
+        }
+
+        st = &EG(symbol_table);
+        if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+                return (unsigned long int) st;
+        }
+        return 0;
 }
 
 char* xdebug_get_property_info(char *mangled_property, int mangled_len, char **property_name, char **class_name)

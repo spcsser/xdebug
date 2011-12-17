@@ -521,7 +521,7 @@ PHP_MINIT_FUNCTION(xdebug)
 
 	/* initialize aggregate call information hash */
 	zend_hash_init_ex(&XG(aggr_calls), 50, NULL, (dtor_func_t) xdebug_profile_aggr_call_entry_dtor, 1, 0);
-	zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
+	//zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
 
 	/* Redirect compile and execute functions to our own */
 	old_compile_file = zend_compile_file;
@@ -615,6 +615,12 @@ PHP_MINIT_FUNCTION(xdebug)
 	XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(pre_dec, ZEND_PRE_DEC);
 	XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(post_dec, ZEND_POST_DEC);
 	XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(assign_ref, ZEND_ASSIGN_REF);
+	XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(qm_assign, ZEND_QM_ASSIGN);
+	XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(pre_inc_obj, ZEND_PRE_INC_OBJ);
+        XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(post_inc_obj, ZEND_POST_INC_OBJ);
+        XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(pre_dec_obj, ZEND_PRE_DEC_OBJ);
+        XDEBUG_SET_OPCODE_OVERRIDE_ASSIGN(post_dec_obj, ZEND_POST_DEC_OBJ);
+
 
 	zend_set_user_opcode_handler(ZEND_BEGIN_SILENCE, xdebug_silence_handler);
 	zend_set_user_opcode_handler(ZEND_END_SILENCE, xdebug_silence_handler);
@@ -658,7 +664,9 @@ PHP_MSHUTDOWN_FUNCTION(xdebug)
 	zend_error_cb = xdebug_old_error_cb;
 
 	zend_hash_destroy(&XG(aggr_calls));
-	zend_hash_destroy(&XG(known_values));
+	if(&XG(known_values)){
+		zend_hash_destroy(&XG(known_values));
+	}
 
 #ifdef ZTS
 	ts_free_id(xdebug_globals_id);
@@ -1332,7 +1340,7 @@ void xdebug_execute(zend_op_array *op_array TSRMLS_DC)
 	xdebug_trace_function_end(fse, function_nr TSRMLS_CC);
 
 	/* Store return value in the trace file */
-	if (XG(collect_return) && do_return && XG(do_trace) && XG(trace_file)) {
+	if ((XG(collect_return) || XG(trace_format) == 11) && do_return && XG(do_trace) && XG(trace_file)) {
 		if (EG(return_value_ptr_ptr) && *EG(return_value_ptr_ptr)) {
 			char* t = xdebug_return_trace_stack_retval(fse, *EG(return_value_ptr_ptr) TSRMLS_CC);
 			fprintf(XG(trace_file), "%s", t);
@@ -1431,7 +1439,7 @@ void xdebug_execute_internal(zend_execute_data *current_execute_data, int return
 	xdebug_trace_function_end(fse, function_nr TSRMLS_CC);
 
 	/* Store return value in the trace file */
-	if (XG(collect_return) && do_return && XG(do_trace) && XG(trace_file)) {
+	if ((XG(collect_return) || XG(trace_format) == 11) && do_return && XG(do_trace) && XG(trace_file)) {
 		cur_opcode = *EG(opline_ptr);
 		if (cur_opcode) {
 			zval *ret = xdebug_zval_ptr(cur_opcode->XDEBUG_TYPE(result), &(cur_opcode->result), current_execute_data->Ts TSRMLS_CC);
@@ -1752,7 +1760,7 @@ PHP_FUNCTION(xdebug_clear_aggr_profiling_data)
 	}
 
 	zend_hash_clean(&XG(aggr_calls));
-	zend_hash_clean(&XG(known_values));
+	//zend_hash_clean(&XG(known_values));
 
 	RETURN_TRUE;
 }

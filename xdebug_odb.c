@@ -23,13 +23,13 @@ static char *xdebug_print_hash_value(zval *struc){
 	return hash;
 }
 
-static void printout_to_file(xdebug_str *dstr, int free){
-
-	if (fprintf(XG(tracedata_file), "%s", dstr->d) < 0) {
-               fclose(XG(tracedata_file));
-               XG(tracedata_file) = NULL;
+static void printout_to_file(xdebug_str *dstr, int free, int data){
+	FILE *tracedata_file= (data==0 ? XG(trace_file) : XG(tracedata_file));
+	if (fprintf(tracedata_file, "%s", dstr->d) < 0) {
+               fclose(tracedata_file);
+               tracedata_file = NULL;
         } else {
-               fflush(XG(tracedata_file));
+               fflush(tracedata_file);
         }
 	if(dstr && free){
 	        xdebug_str_free(dstr);
@@ -126,7 +126,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 	xdebug_str_add(&str, ",\"aid\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d", fnr), 1);
 	*/
-	print_trace_basics(&str,fnr,i,0);
+	print_trace_basics(&str,i->fn_nr,i,0);
 	if (whence == 0) { /* start */
 		tmp_name = xdebug_show_fname(i->function, 0, 0 TSRMLS_CC);
 
@@ -214,7 +214,7 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		}
 		xdebug_str_add(&dstr, "]}", 0);
 
-		printout_to_file(&dstr,1);
+		printout_to_file(&dstr,1,1);
 		/*
 		if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
 			fclose(XG(tracedata_file));
@@ -309,8 +309,8 @@ void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno
 	xdebug_str_chop(&dstr, 1); //remove trailing colon
 	xdebug_str_add(&dstr, "]}", 0);
 
-	printout_to_file(&str, 1);
-	printout_to_file(&dstr, 1);
+	printout_to_file(&str, 1, 0);
+	printout_to_file(&dstr, 1, 1);
 	/*
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
 		fclose(XG(trace_file));
@@ -368,8 +368,8 @@ void xdebug_odb_handle_error(int type, const char *error_filename, const uint er
 		default:
 			break;
 	}
-	printout_to_file(&str,1);
-	printout_to_file(&dstr,1);
+	printout_to_file(&str, 1, 0);
+	printout_to_file(&dstr, 1, 1);
 	/*
         if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
                 fclose(XG(tracedata_file));
@@ -435,8 +435,8 @@ void xdebug_odb_handle_exception(zval *exception TSRMLS_DC) {
 	xdebug_str_add(&dstr, Z_STRVAL_P(message), 0);
 	xdebug_str_add(&dstr, "\"}", 0);
 
-	printout_to_file(&str,1);
-	printout_to_file(&dstr,1);
+	printout_to_file(&str, 1, 0);
+	printout_to_file(&dstr, 1, 1);
 	/*
 	if (fprintf(XG(trace_file), "%s", str.d) < 0) {
 		fclose(XG(trace_file));
@@ -511,8 +511,8 @@ char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname
 
 	xdebug_str_addl(&dstr, "}", 1, 0);
 
-        printout_to_file(&str,1);
-        printout_to_file(&dstr,1);
+        printout_to_file(&str, 1, 0);
+        printout_to_file(&dstr, 1, 1);
 
 /*
 	if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {

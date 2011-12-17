@@ -68,6 +68,11 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_bw_xor);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_dim);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_obj);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_ref);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(qm_assign);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_dec_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_dec_obj);
 
 void xdebug_count_line(char *file, int lineno, int executable, int deadcode TSRMLS_DC);
 void xdebug_prefill_code_coverage(zend_op_array *op_array TSRMLS_DC);

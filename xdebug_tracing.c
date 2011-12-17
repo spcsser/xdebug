@@ -443,7 +443,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	}
 	if(XG(trace_format) == 11) {
 		filename_data = xdebug_sprintf("%s_data",filename);
-
+		zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
 		if (options & XDEBUG_TRACE_OPTION_APPEND) {
 			XG(tracedata_file) = xdebug_fopen(filename_data, "a", "xt", (char**) &tmp_fdname);
 		} else {
