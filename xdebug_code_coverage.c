@@ -247,13 +247,10 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		}else{
 			xdebug_str_add(&name, "->", 0);
 		}
-		char *tname;
 #if PHP_VERSION_ID >= 50399
                 xdebug_str_add(&name, xdebug_sprintf("%s", Z_STRVAL_P(cur_opcode->op2.zv)), 1);
-		tname=Z_STRVAL_P(cur_opcode->op2.zv);
 #else
                 xdebug_str_add(&name, xdebug_sprintf("%s", cur_opcode->op2.u.constant.value.str.val), 1);
-		tname= cur_opcode->op2.u.constant.value.str.val;
 #endif
 	}
 
@@ -379,7 +376,6 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_xor,"^=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_dim,"=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_obj,"=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_ref,"=&",1)
-XDEBUG_OPCODE_OVERRIDE_ASSIGN(qm_assign,"?=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(pre_inc_obj,"",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(post_inc_obj,"",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(pre_dec_obj,"",0)
