@@ -23,6 +23,45 @@ static char *xdebug_print_hash_value(zval *struc){
 	return hash;
 }
 
+static int xdebug_object_element_export_json(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key);
+
+static void odb_export_class_vars(char *class_name, xdebug_str *str, int level, xdebug_var_export_options *options){
+ 	zend_class_entry **zce;
+        zend_lookup_class(class_name, strlen(class_name), &zce TSRMLS_CC);
+	char *id;
+	zval **tmpVal=0;
+
+	id=xdebug_sprintf("%lu", (unsigned long int) *zce);
+	// only add id if not known and no forcing
+	if((zend_hash_find(&XG(known_values), id, sizeof(id),(void**)&tmpVal) == SUCCESS) ) {//&& cmpzvals(tmpVal, struc)
+		xdebug_str_add(str, "{\"cid\":",0);
+		xdebug_str_add(str, id, 0);
+		xdebug_str_add(str, "}",0);
+	} else {
+		zend_hash_add(&XG(known_values), id, sizeof(id), (void**)&tmpVal, sizeof(zval*), NULL);
+
+        	xdebug_str_add(str, "{\"typ\":\"class\",\"nme\":\"",0);
+	        xdebug_str_add(str, class_name, 0);
+        	xdebug_str_add(str, "\",\"cid\":", 0);
+	        xdebug_str_add(str, xdebug_sprintf("%lu", zce), 1);
+        	xdebug_str_add(str, ",\"val\":[", 0);
+
+
+	        if (level <= options->max_depth) {
+        	        options->runtime[level].current_element_nr = 0;
+                	options->runtime[level].start_element_nr = 0;
+	                options->runtime[level].end_element_nr = options->max_children;
+        	        zend_hash_apply_with_arguments((*zce)->static_members XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_json, 6, level, str, 0, options, class_name, " static");
+                	zend_hash_apply_with_arguments(&((*zce)->constants_table) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_json, 6, level, str, 0, options, class_name, " const");
+	                /* Remove the ", " at the end of the string */
+        	        if((*zce)->static_members->nNumOfElements > 0 || (*zce)->constants_table.nNumOfElements > 0){
+                        	xdebug_str_chop(str, 1);
+                	}
+       		}
+	        xdebug_str_add(str, "]}", 0);
+	}	
+}
+
 static void printout_to_file(xdebug_str *dstr, int free, int data){
 	FILE *tracedata_file= (data==0 ? XG(trace_file) : XG(tracedata_file));
 	if (fprintf(tracedata_file, "%s", dstr->d) < 0) {
@@ -172,12 +211,22 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		xdebug_str_add(&dstr, ",\"atp\":0,\"obj\":",0);
 
 		/* First the object scope*/
-		char *tmp_obj=NULL;
+		xdebug_str tmp_obj={0,0,NULL};
 		if(EG(This)){
-			tmp_obj = xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL);
+			xdebug_str_add(&tmp_obj, xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL),1);
+		} else if(i->function.class){
+			xdebug_var_export_options *options;
+			options = xdebug_var_export_options_from_ini(TSRMLS_C);
+			options->max_children = 1048576;
+			options->max_data = 1073741824;
+			options->max_depth = 4096;
+			odb_export_class_vars(i->function.class,&tmp_obj,i->level,options);
+			xdfree(options->runtime);
+			xdfree(options);
 		}
-		if(tmp_obj) {
-			xdebug_str_add(&dstr, tmp_obj, 1);
+
+		if(tmp_obj.l>0) {
+			xdebug_str_add(&dstr, tmp_obj.d, 1);
 		} else {
 			xdebug_str_add(&dstr, "{\"typ\":\"NULL\",\"id\":0}", 0);
 		}
@@ -347,7 +396,7 @@ void xdebug_odb_handle_error(int type, const char *error_filename, const uint er
 	xdebug_str_add(&str, error_type_str, 0);
 
 	xdebug_str_add(&str, "\",\"fle\":\"", 0);
-	xdebug_str_add(&str, error_filename, 0);
+	xdebug_str_add(&str, xdebug_sprintf("%s",error_filename), 1);
 	xdebug_str_add(&str, "\",\"lne\":", 0);
 	xdebug_str_add(&str, xdebug_sprintf("%d",error_lineno), 1);
 	xdebug_str_add(&str, "}", 0);

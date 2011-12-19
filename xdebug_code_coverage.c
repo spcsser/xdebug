@@ -85,7 +85,8 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	prev_opcode = cur_opcode - 1;
 
 	if (cur_opcode->XDEBUG_TYPE(op1) == IS_VAR &&
-			(next_opcode->XDEBUG_TYPE(op1) == IS_VAR || cur_opcode->XDEBUG_TYPE(op2) == IS_VAR) &&
+			(next_opcode->XDEBUG_TYPE(op1) == IS_VAR 
+		|| cur_opcode->XDEBUG_TYPE(op2) == IS_VAR) &&
 			prev_opcode->opcode == ZEND_FETCH_RW &&
 			prev_opcode->XDEBUG_TYPE(op1) == IS_CONST &&
 #if PHP_VERSION_ID >= 50399
@@ -126,9 +127,15 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
                         		xdebug_str_add(&name, xdebug_sprintf("%s::", class_name), 1);
 				}else{
 					xdebug_str_add(&name, "self::", 0);
+					 if(execute_data->Ts->class_entry){
+                                        	*mid=(unsigned long int) execute_data->Ts->class_entry;
+					}
 				}
                 	}else{
 				xdebug_str_add(&name, "self::", 0);
+				if(execute_data->Ts->class_entry){
+					*mid=(unsigned long int) execute_data->Ts->class_entry;
+				}
 			}
 
 		} else {
@@ -142,7 +149,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		xdebug_str_add(&name, "self::", 0);
 	}
 
-	if ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_BW_XOR)) {
+	if ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_REF)) {
 		if (cur_opcode->extended_value == ZEND_ASSIGN_OBJ) {
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, options);
 			if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
@@ -156,6 +163,12 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		} else if (cur_opcode->extended_value == ZEND_ASSIGN_DIM) {
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, NULL);
 			xdebug_str_add(&name,xdebug_sprintf("[%s]", zval_value), 1);
+		} else if (prev_opcode->opcode == ZEND_FETCH_RW || prev_opcode->opcode == ZEND_FETCH_DIM_RW || prev_opcode->opcode == ZEND_FETCH_OBJ_RW){
+#if PHP_VERSION_ID >= 50399
+        	        xdebug_str_add(&name, xdebug_sprintf("%s", Z_STRVAL_P(prev_opcode->op1.zv)), 1);
+#else
+                	xdebug_str_add(&name, xdebug_sprintf("%s", prev_opcode->op1.u.constant.value.str.val), 1);
+#endif
 		}
 	}
 	if (zval_value) {
