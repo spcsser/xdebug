@@ -110,7 +110,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	if (cur_opcode->XDEBUG_TYPE(op1) == IS_CV) {
 		xdebug_str_add(&name, "$", 0);
 		xdebug_str_add(&name, xdebug_sprintf("%s", zend_get_compiled_variable_name(op_array, cur_opcode->XDEBUG_ZNODE_ELEM(op1, var), &cv_len)), 1);
-	} else if (cur_opcode->XDEBUG_TYPE(op1) == IS_VAR && cur_opcode->opcode == ZEND_ASSIGN && prev_opcode->opcode == ZEND_FETCH_W) {
+	} else if (cur_opcode->XDEBUG_TYPE(op1) == IS_VAR && cur_opcode->opcode == ZEND_ASSIGN && (prev_opcode->opcode == ZEND_FETCH_W || prev_opcode->opcode == ZEND_FETCH_RW)) {
 		if (is_static) {
 			//xdebug_str_add(&name, "self::", 0);
 			//*mid=(unsigned long int) execute_data->Ts->class_entry;
@@ -149,7 +149,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 		xdebug_str_add(&name, "self::", 0);
 	}
 
-	if ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_REF)) {
+/*	if ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_REF)) {
 		if (cur_opcode->extended_value == ZEND_ASSIGN_OBJ) {
 			zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, options);
 			if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
@@ -168,7 +168,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	if (zval_value) {
 		xdfree(zval_value);
 		zval_value = NULL;
-	}
+	}*/
 
 	/* Scroll back to start of FETCHES */
 	gohungfound = 0;
@@ -176,7 +176,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	while (opcode_ptr->opcode == ZEND_FETCH_DIM_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_W || opcode_ptr->opcode == ZEND_FETCH_DIM_RW || opcode_ptr->opcode == ZEND_FETCH_OBJ_RW || opcode_ptr->opcode == ZEND_FETCH_RW) {
 		opcode_ptr = opcode_ptr - 1;
 		gohungfound = 1;
-		if(cur_opcode->opcode == ZEND_ASSIGN_REF){
+		if(cur_opcode->opcode == ZEND_ASSIGN_REF && (opcode_ptr-1)->XDEBUG_TYPE(op1) == IS_UNUSED){
 			break;
 		}
 	}
@@ -185,7 +185,7 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 	if (gohungfound) {
 		do
 		{
-			if (opcode_ptr->XDEBUG_TYPE(op1) == IS_UNUSED && opcode_ptr->opcode == ZEND_FETCH_OBJ_W) {
+			if (opcode_ptr->XDEBUG_TYPE(op1) == IS_UNUSED && (opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_RW)) {
 				xdebug_str_add(&name, "$this", 0);
 				*mid=(unsigned long int) EG(This);
 			}
@@ -211,6 +211,27 @@ static char *xdebug_find_var_name(zend_execute_data *execute_data, unsigned long
 			}
 		} while (opcode_ptr->opcode == ZEND_FETCH_DIM_W || opcode_ptr->opcode == ZEND_FETCH_OBJ_W || opcode_ptr->opcode == ZEND_FETCH_W || opcode_ptr->opcode == ZEND_FETCH_DIM_RW || opcode_ptr->opcode == ZEND_FETCH_OBJ_RW || opcode_ptr->opcode == ZEND_FETCH_RW);
 	}
+
+	if ((cur_opcode->opcode >= ZEND_ASSIGN_ADD && cur_opcode->opcode <= ZEND_ASSIGN_REF)) {
+                if (cur_opcode->extended_value == ZEND_ASSIGN_OBJ) {
+                        zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, options);
+                        if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED && name.l == 0) {
+                                xdebug_str_add(&name, "$this->", 0);
+                                xdebug_str_add(&name, xdebug_sprintf("%s", zval_value), 1);
+                                *mid=(unsigned long int) EG(This);
+                        } else {
+                                xdebug_str_add(&name, "->", 0);
+                                xdebug_str_add(&name, xdebug_sprintf("%s", zval_value), 1);
+                        }
+                } else if (cur_opcode->extended_value == ZEND_ASSIGN_DIM) {
+                        zval_value = xdebug_get_zval_value(xdebug_get_zval(execute_data, cur_opcode->XDEBUG_TYPE(op2), &cur_opcode->op2, execute_data->Ts, &is_var), 0, NULL);
+                        xdebug_str_add(&name,xdebug_sprintf("[%s]", zval_value), 1);
+                }
+        }
+        if (zval_value) {
+                xdfree(zval_value);
+                zval_value = NULL;
+        }
 
 	if (cur_opcode->opcode == ZEND_ASSIGN_OBJ) {
 		if (cur_opcode->XDEBUG_TYPE(op1) == IS_UNUSED) {
