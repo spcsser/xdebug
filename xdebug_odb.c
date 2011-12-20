@@ -28,24 +28,27 @@ static int xdebug_object_element_export_json(zval **zv XDEBUG_ZEND_HASH_APPLY_TS
 static void odb_export_class_vars(char *class_name, xdebug_str *str, int level, xdebug_var_export_options *options){
  	zend_class_entry **zce;
         zend_lookup_class(class_name, strlen(class_name), &zce TSRMLS_CC);
+	if(!zce || !(*zce)){
+		return;
+	}
+
 	char *id;
 	zval **tmpVal=0;
 
 	id=xdebug_sprintf("%lu", (unsigned long int) *zce);
 	// only add id if not known and no forcing
-	if((zend_hash_find(&XG(known_values), id, sizeof(id),(void**)&tmpVal) == SUCCESS) ) {//&& cmpzvals(tmpVal, struc)
+	if (zend_hash_find(&XG(known_values), class_name, strlen(class_name)+1, (void**)&tmpVal) != FAILURE) {
 		xdebug_str_add(str, "{\"cid\":",0);
-		xdebug_str_add(str, id, 0);
+		xdebug_str_add(str, id, 1);
 		xdebug_str_add(str, "}",0);
 	} else {
-		zend_hash_add(&XG(known_values), id, sizeof(id), (void**)&tmpVal, sizeof(zval*), NULL);
+		zend_hash_add(&XG(known_values), class_name, strlen(class_name)+1, (void**)&tmpVal, sizeof(zval*), NULL);
 
         	xdebug_str_add(str, "{\"typ\":\"class\",\"nme\":\"",0);
 	        xdebug_str_add(str, class_name, 0);
         	xdebug_str_add(str, "\",\"cid\":", 0);
-	        xdebug_str_add(str, xdebug_sprintf("%lu", zce), 1);
+	        xdebug_str_add(str, id, 1);
         	xdebug_str_add(str, ",\"val\":[", 0);
-
 
 	        if (level <= options->max_depth) {
         	        options->runtime[level].current_element_nr = 0;
@@ -213,19 +216,20 @@ char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence
 		/* First the object scope*/
 		xdebug_str tmp_obj={0,0,NULL};
 		if(EG(This)){
-			xdebug_str_add(&tmp_obj, xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL),1);
+			xdebug_str_add(&tmp_obj, xdebug_get_zval_json_value(EG(This), strstr(tmp_name,"->__construct")!=NULL, NULL), 1);
 		} else if(i->function.class){
 			xdebug_var_export_options *options;
 			options = xdebug_var_export_options_from_ini(TSRMLS_C);
 			options->max_children = 1048576;
 			options->max_data = 1073741824;
 			options->max_depth = 4096;
+			options->runtime = (xdebug_var_runtime_page*) xdmalloc((options->max_depth + 1) * sizeof(xdebug_var_runtime_page));
 			odb_export_class_vars(i->function.class,&tmp_obj,i->level,options);
 			xdfree(options->runtime);
 			xdfree(options);
 		}
 
-		if(tmp_obj.l>0) {
+		if(tmp_obj.d && tmp_obj.l>0) {
 			xdebug_str_add(&dstr, tmp_obj.d, 1);
 		} else {
 			xdebug_str_add(&dstr, "{\"typ\":\"NULL\",\"id\":0}", 0);
@@ -739,14 +743,14 @@ void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int forceO
 	}
 	// only add id if not known and no forcing
 	if(forceOutput == 0 && (zend_hash_find(&XG(known_values),
-							id, sizeof(id),
+							id, strlen(id)+1,
 							(void**)&tmpVal) == SUCCESS) ) {//&& cmpzvals(tmpVal, struc)
 		xdebug_str_add(str, "{\"id\":",0);
 		xdebug_str_add(str, id, 0);
 		xdebug_str_add(str, "}",0);
 	} else {
 		if(XG(do_trace) && XG(trace_file) && XG(tracedata_file) && forceOutput == 0) {
-			zend_hash_add(&XG(known_values), id, sizeof(id), (void**)&tmpVal, sizeof(zval*), NULL);
+			zend_hash_add(&XG(known_values), id, strlen(id)+1, (void**)&tmpVal, sizeof(zval*), NULL);
 		}// else if(tmpVal && (*tmpVal) && cmpzvals(tmpVal, struc)) {
 			//zend_hash_update(&XG(known_values), id, sizeof(id), (void**)&struc, sizeof(zval*), NULL);
 		//}
