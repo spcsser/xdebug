@@ -60,6 +60,8 @@
 #include "xdebug_tracing.h"
 #include "usefulstuff.h"
 
+#include "xdebug_odb.h"
+
 /* execution redirection functions */
 zend_op_array* (*old_compile_file)(zend_file_handle* file_handle, int type TSRMLS_DC);
 zend_op_array* xdebug_compile_file(zend_file_handle*, int TSRMLS_DC);
@@ -1100,6 +1102,10 @@ static void xdebug_throw_exception_hook(zval *exception TSRMLS_DC)
 			}
 		}
 	}
+
+	if(XG(do_trace) && XG(trace_file) && XG(trace_format) == 11){
+		xdebug_odb_handle_exception(exception);
+	}
 }
 
 static int handle_breakpoints(function_stack_entry *fse, int breakpoint_type)
@@ -1757,7 +1763,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
 
-	if (XG(remote_enabled)) {
+	if (XG(remote_enabled) || XG(do_trace)) {
 
 		if (XG(context).do_break) {
 			XG(context).do_break = 0;
@@ -1777,6 +1783,10 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 			level = 0;
 		}
 		
+		if(XG(trace_format)==11){
+			//xdebug_odb_handle_statement(op_array, file, lineno);
+		}
+
 		if (XG(context).do_finish && XG(context).next_level == level) { /* Check for "finish" */
 			XG(context).do_finish = 0;
 

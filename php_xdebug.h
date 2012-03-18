@@ -33,7 +33,6 @@
 #include "xdebug_hash.h"
 #include "xdebug_llist.h"
 #include "xdebug_code_coverage.h"
-#include <sqlite3.h>
 
 #if PHP_VERSION_ID >= 50399
 # define OUTPUTBUFFERING 0
@@ -282,8 +281,6 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	int stdout_redirected;
 	int stderr_redirected;
 	int stdin_redirected;
-
-	sqlite3 **trace_db;
 
 	/* aggregate profiling */
 	HashTable  aggr_calls;

@@ -245,9 +245,9 @@ static int xdebug_common_assign_dim_handler(char *op, int do_cc, ZEND_OPCODE_HAN
 			fse = XDEBUG_LLIST_VALP(XDEBUG_LLIST_TAIL(XG(stack)));
 			t = xdebug_return_trace_assignment(fse, full_varname, val, op, file, lineno TSRMLS_CC);
 		}
-		xdfree(full_varname);
 		fprintf(XG(trace_file), "%s", t);
 		fflush(XG(trace_file));
+
 		xdfree(t);
 	}
 	return ZEND_USER_OPCODE_DISPATCH;
@@ -277,9 +277,6 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_and,"&=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_bw_xor,"^=",0)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_dim,"=",1)
 XDEBUG_OPCODE_OVERRIDE_ASSIGN(assign_obj,"=",1)
-//XDEBUG_OPCODE_OVERRIDE_ASSIGN(init_string,"",0)
-//XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_string,"",0)
-//XDEBUG_OPCODE_OVERRIDE_ASSIGN(add_var,"",0)
 
 void xdebug_count_line(char *filename, int lineno, int executable, int deadcode TSRMLS_DC)
 {

@@ -55,77 +55,6 @@ void xdebug_trace_function_end(function_stack_entry *fse, int function_nr TSRMLS
 	}
 }
 
-char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *filename, int lineno TSRMLS_DC)
-{
-	int j = 0;
-	xdebug_str str = {0, 0, NULL};
-	xdebug_str dstr = {0, 0, NULL};
-	char *tmp_value=0;
-	char *tmp_varval=0;
-
-	xdebug_str_add(&str, xdebug_sprintf("\n{\"lvl\":%d", i->level), 1);
-	xdebug_str_add(&str, xdebug_sprintf(",\"aid\":%d", ++XG(function_count)), 1);
-
-	xdebug_str_add(&str, ",\"atp\":2", 0);
-	xdebug_str_add(&str, xdebug_sprintf(",\"tme\":%f", i->time - XG(start_time)), 1);
-#if HAVE_PHP_MEMORY_USAGE
-	xdebug_str_add(&str, xdebug_sprintf(",\"mem\":%lu", i->memory), 1);
-#else
-
-#endif
-	zend_op *cur_opcode = *EG(opline_ptr), *opcode_ptr;
-
-	xdebug_str_add(&dstr, xdebug_sprintf("\n{\"aid\":%d,\"atp\":2", XG(function_count)), 1);
-
-	if(EG(This)){
-		char* tmp_val=0;
-		tmp_val=xdebug_get_zval_json_value(EG(This), 0, NULL);
-		if(tmp_val){
-			xdebug_str_add(&dstr, xdebug_sprintf(",\"obj\":%s",tmp_val), 1);
-		}else{
-			xdebug_str_add(&dstr, xdebug_sprintf(",\"id\":%lu",&i->This), 1);
-		}
-	}else if(i->function.class){
-		xdebug_str_add(&dstr, xdebug_sprintf(",\"cid\":\"%s\"",i->function.class), 1);
-	}else{
-		xdebug_str_add(&dstr, xdebug_sprintf(",\"ast\":%lu",&i->execute_data->symbol_table), 1);
-	}
-
-	xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
-	xdebug_str_add(&dstr, xdebug_sprintf(",\"nme\":\"%s\"",varname), 1);
-
-	xdebug_str_add(&str, xdebug_sprintf(",\"fle\":\"%s\",\"lne\":%d}", filename, lineno), 1);
-
-	tmp_value = xdebug_get_zval_json_value(retval, 0, NULL);
-	if(varval && varval !=NULL){
-		tmp_varval = xdebug_get_zval_json_value(varval, 0, NULL);
-	}
-
-	if (tmp_value) {
-		xdebug_str_add(&dstr, xdebug_sprintf(",\"val\":%s", tmp_value), 1);
-	} else {
-		xdebug_str_add(&dstr, ",\"val\":\"NULL\"", 1);
-	}
-
-	if(tmp_varval){
-		xdebug_str_add(&dstr, xdebug_sprintf(",\"op\":\"%s\",\"vvl\":%s}", op, tmp_varval), 1);
-	}else{
-		xdebug_str_addl(&dstr, "}", 1, 0);
-	}
-
-	if (fprintf(XG(tracedata_file), "%s", dstr.d) < 0) {
-		fclose(XG(tracedata_file));
-		XG(tracedata_file) = NULL;
-	} else {
-		fflush(XG(tracedata_file));
-	}
-
-
-	xdebug_str_free(&dstr);
-
-	return str.d;
-}
-
 char* xdebug_return_trace_assignment(function_stack_entry *i, char *varname, zval *retval, char *op, char *filename, int lineno TSRMLS_DC)
 {
 	int j = 0;
@@ -180,21 +109,23 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 		}
 	} else if(XG(trace_format == 11)) {//JSON
 
-		xdebug_str_add(&str, xdebug_sprintf("\n{\"aid\":%d,\"atp\":1,\"val\":", i->fn_nr), 1);
+		xdebug_str_add(&str, "\n{\"aid\":", 0);
+		xdebug_str_add(&str, xdebug_sprintf("%d", i->fn_nr), 1);
+		xdebug_str_add(&str, ",\"atp\":1,\"val\":", 0);
 
 		tmp_value = xdebug_get_zval_json_value(retval, 0, NULL);
 		if (tmp_value) {
-			xdebug_str_add(&str, xdebug_sprintf("%s", tmp_value), 1);
+			xdebug_str_add(&str, tmp_value, 1);
 		} else {
-			xdebug_str_add(&str, "\"NULL\"", 1);
+			xdebug_str_add(&str, "\"NULL\"", 0);
 		}
+
 		if (fprintf(XG(tracedata_file), "%s}", str.d) < 0) {
 			fclose(XG(tracedata_file));
 			XG(tracedata_file) = NULL;
 		} else {
 			fflush(XG(tracedata_file));
 		}
-		xdfree(tmp_value);
 		xdebug_str_free(&str);
 		return xdstrdup("");
 	} else if (XG(trace_format) == 0) { //Human readable
@@ -532,7 +463,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	if (options & XDEBUG_TRACE_OPTION_HTML) {
 		XG(trace_format) = 2;
 	}
-	if(XG(trace_format)==11) {
+	if(XG(trace_format) == 11 || XG(trace_format) == 23) {
 		filename_data = xdebug_sprintf("%s_data",fname);
 
 		if (options & XDEBUG_TRACE_OPTION_APPEND) {
@@ -542,15 +473,21 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 		}
 		if(XG(tracedata_file)) {
 			XG(tracedatafile_name) = tmp_fdname;
+			if(XG(trace_format) == 23){
+				fputc((int)0xAC,XG(tracedata_file));
+				fputc((int)0xED,XG(tracedata_file));
+				fputc((int)0x00,XG(tracedata_file));
+				fputc((int)0x05,XG(tracedata_file));
+				fflush(XG(tracedata_file));
+			}
 		}
 	}
-
 	if (XG(trace_file)) {
-		if (XG(trace_format) == 1||XG(trace_format) == 11) {
+		if (XG(trace_format) == 1||XG(trace_format) == 11 || XG(trace_format) == 23) {
 			fprintf(XG(trace_file), "Version: %s\n", XDEBUG_VERSION);
-			fprintf(XG(trace_file), "File format: %d\n", XG(trace_format)+1);
+			fprintf(XG(trace_file), "File format: %lu\n", XG(trace_format)+1);
 		}
-		if (XG(trace_format) == 0 || XG(trace_format) == 1 || XG(trace_format) == 11) {
+		if (XG(trace_format) == 0 || XG(trace_format) == 1 || XG(trace_format) == 11 || XG(trace_format) == 23) {
 			str_time = xdebug_get_time();
 			fprintf(XG(trace_file), "TRACE START [%s]\n", str_time);
 			xdfree(str_time);
@@ -594,7 +531,7 @@ void xdebug_stop_trace( TSRMLS_D) {
 			fprintf(XG(trace_file), "</table>\n");
 		}
 
-		if(XG(trace_format)==11){
+		if(XG(trace_format)==11 || XG(trace_format)==23){
 			fclose(XG(tracedata_file));
 			XG(tracedata_file)= NULL;
 		}

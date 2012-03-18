@@ -3,7 +3,14 @@
 
 #include "ext/standard/php_string.h"
 
-ZEND_EXTERN_MODULE_GLOBALS( xdebug)
+ZEND_EXTERN_MODULE_GLOBALS(xdebug)
+
+void xdebug_odb_handle_exception(zval *exception);
+void xdebug_odb_handle_statement(function_stack_entry *i, char *file, int lineno);
+void xdebug_var_export_json(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC);
+char* xdebug_get_zval_json_value(zval *val, int debug_zval, xdebug_var_export_options *options);
+
+char* xdebug_return_trace_assignment_json(function_stack_entry *i, char *varname, zval *retval, zval *varval, char *op, char *file, int fileno TSRMLS_DC);
 
 static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence TSRMLS_DC);
 
@@ -13,20 +20,30 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int whence TSRMLS_DC)
 {
 	char *tmp_name;
+	char *time;
+	char *mem;
+	time=xdebug_sprintf("%f", i->time - XG(start_time));
+	mem=xdebug_sprintf("%lu", i->memory);
+	//_sprintf(time, "%f", i->time - XG(start_time));
+	//_sprintf(mem, "%lu", i->memory);
 
 	xdebug_str str = {0, 0, NULL};
 	xdebug_str dstr = {0, 0, NULL};
 
-	xdebug_str_add(&str, xdebug_sprintf("\n{\"lvl\":%d", i->level), 1);
-	xdebug_str_add(&str, xdebug_sprintf(",\"aid\":%d", fnr), 1);
+	xdebug_str_add(&str, "\n{\"lvl\":", 0);
+	xdebug_str_add(&str, xdebug_sprintf("%d", XG(level)), 1);
+	xdebug_str_add(&str, ",\"aid\":", 0);
+	xdebug_str_add(&str, xdebug_sprintf("%d", fnr), 1);
 
 	if (whence == 0) { /* start */
 		tmp_name = xdebug_show_fname(i->function, 0, 0 TSRMLS_CC);
 
 		xdebug_str_add(&str, ",\"atp\":0", 0);
-		xdebug_str_add(&str, xdebug_sprintf(",\"tme\":%f", i->time - XG(start_time)), 1);
+		xdebug_str_add(&str, ",\"tme\":", 0);
+		xdebug_str_add(&str, time, 1);
 #if HAVE_PHP_MEMORY_USAGE
-		xdebug_str_add(&str, xdebug_sprintf(",\"mem\":%lu", i->memory), 1);
+		xdebug_str_add(&str, ",\"mem\":", 0);
+		xdebug_str_add(&str, mem, 1);
 #else
 		//xdebug_str_add(&str, "\t", 0);
 #endif
@@ -34,8 +51,12 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 			i->function.type=XFUNC_NEW;
 		}
 
-		xdebug_str_add(&str, xdebug_sprintf(",\"nme\":\"%s\"",tmp_name), 1);
-		xdebug_str_add(&str, xdebug_sprintf(",\"ext\":%d,\"ftp\":%d", i->user_defined == XDEBUG_EXTERNAL ? 1 : 0, i->function.type), 1);
+		xdebug_str_add(&str, ",\"nme\":\"", 0);
+		xdebug_str_add(&str, tmp_name, 0);
+		xdebug_str_add(&str, "\",\"ext\":", 0);
+		xdebug_str_add(&str, i->user_defined == XDEBUG_EXTERNAL ? "1" : "0", 0);
+		xdebug_str_add(&str, ",\"ftp\":", 0);
+		xdebug_str_add(&str, xdebug_sprintf("%d", i->function.type), 1);
 		xdfree(tmp_name);
 
 		if (i->include_filename) {
@@ -43,18 +64,26 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 
 			char *escaped;
 			escaped = php_addcslashes(i->include_filename, strlen(i->include_filename), &tmp_len, 0, "\\\0..\37", 5 TSRMLS_CC);
-			xdebug_str_add(&str, xdebug_sprintf(",\"inc\":\"%s\"",escaped), 1);
+			xdebug_str_add(&str, ",\"inc\":\"", 0);
+			xdebug_str_add(&str, escaped, 0);
+			xdebug_str_add(&str, "\"", 0);
 			efree(escaped);
 		}
 
 		/* Filename and Lineno (9, 10) */
-		xdebug_str_add(&str, xdebug_sprintf(",\"fle\":\"%s\",\"lne\":%d}", i->filename, i->lineno), 1);
+		xdebug_str_add(&str, ",\"fle\":\"", 0);
+		xdebug_str_add(&str, i->filename, 0);
+		xdebug_str_add(&str, "\",\"lne\":", 0);
+		xdebug_str_add(&str, xdebug_sprintf("%d", i->lineno), 1);
+		xdebug_str_add(&str, "}", 0);
 
 		/* Nr of arguments (11) */
 		//xdebug_str_add(&str, xdebug_sprintf(",\"argcount\":%d", i->varc), 1);
 
 		/* Time to collect the data into seperate string and then file*/
-		xdebug_str_add(&dstr, xdebug_sprintf("\n{\"aid\":%d,\"atp\":0,\"obj\":",fnr),0);
+		xdebug_str_add(&dstr, "\n{\"aid\":",0);
+		xdebug_str_add(&dstr, xdebug_sprintf("%d",fnr),1);
+		xdebug_str_add(&dstr, ",\"atp\":0,\"obj\":",0);
 
 		/* First the object scope*/
 		char *tmp_obj;
@@ -62,7 +91,7 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 		if(tmp_obj) {
 			xdebug_str_add(&dstr, tmp_obj, 1);
 		} else {
-			xdebug_str_add(&dstr, "{\"typ\":\"NULL\"}", 0);
+			xdebug_str_add(&dstr, "{\"typ\":\"NULL\",\"id\":0}", 0);
 		}
 		xdebug_str_add(&dstr, ",\"arg\":[", 0);
 
@@ -73,10 +102,13 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 			for (j = 0; j < i->varc; j++) {
 				char *tmp_value;
 				if (i->var[j].name) {
-					xdebug_str_add(&dstr, xdebug_sprintf("{\"nme\":\"$%s\"", i->var[j].name), 1);
+					xdebug_str_add(&dstr, "{\"nme\":\"$", 0);
+					xdebug_str_add(&dstr, i->var[j].name, 0);
 				} else {
-					xdebug_str_add(&dstr, xdebug_sprintf("{\"nme\":\"%d\"",j), 0);
+					xdebug_str_add(&dstr, "{\"nme\":\"", 0);
+					xdebug_str_add(&dstr, xdebug_sprintf("%d", j), 1);
 				}
+				xdebug_str_add(&dstr, "\"",0);
 
 				//xdebug_str_add(&dstr, xdebug_sprintf(",\"ast\":\"%d\",\"val\":",fnr), 1);
 				xdebug_str_add(&dstr, ",\"val\":", 0);
@@ -106,9 +138,14 @@ static char* return_trace_stack_frame_json(function_stack_entry* i, int fnr, int
 		//xdebug_str_add(&dstr, "]}", 0);
 	} else if (whence == 1) { /* end */
 		xdebug_str_add(&str, ",\"atp\":1", 0);
-		xdebug_str_add(&str, xdebug_sprintf(",\"tme\":%f", xdebug_get_utime() - XG(start_time)), 1);
+		xdebug_str_add(&str, ",\"tme\":", 0);
+		xdebug_str_add(&str, time, 1);
 #if HAVE_PHP_MEMORY_USAGE
-		xdebug_str_add(&str, xdebug_sprintf(",\"mem\":%lu}", XG_MEMORY_USAGE()), 1);
+		xdebug_str_add(&str, ",\"mem\":", 0);
+		xdebug_str_add(&str, mem, 1);
+		//xdebug_str_add(&str, ",\"lne\":", 0);
+		//xdebug_str_add(&str, xdebug_sprintf("%d", EG(current_execute_data)->opline->lineno), 1);
+		xdebug_str_add(&str, "}", 0);
 #else
 
 #endif
