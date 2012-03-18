@@ -1,21 +1,4 @@
 /*
-<<<<<<< HEAD
- +----------------------------------------------------------------------+
- | Xdebug                                                               |
- +----------------------------------------------------------------------+
- | Copyright (c) 2002-2011 Derick Rethans                               |
- +----------------------------------------------------------------------+
- | This source file is subject to version 1.0 of the Xdebug license,    |
- | that is bundled with this package in the file LICENSE, and is        |
- | available at through the world-wide-web at                           |
- | http://xdebug.derickrethans.nl/license.php                           |
- | If you did not receive a copy of the Xdebug license and are unable   |
- | to obtain it through the world-wide-web, please send a note to       |
- | xdebug@derickrethans.nl so we can mail you a copy immediately.       |
- +----------------------------------------------------------------------+
- | Authors:  Derick Rethans <derick@xdebug.org>                         |
- +----------------------------------------------------------------------+
-=======
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
@@ -31,7 +14,6 @@
    +----------------------------------------------------------------------+
    | Authors:  Derick Rethans <derick@xdebug.org>                         |
    +----------------------------------------------------------------------+
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
  */
 #include "php_xdebug.h"
 #include "xdebug_private.h"
@@ -39,10 +21,7 @@
 #include "xdebug_tracing.h"
 #include "xdebug_var.h"
 #include "xdebug_odb.h"
-<<<<<<< HEAD
-=======
 #include "ext/standard/php_string.h"
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 ZEND_EXTERN_MODULE_GLOBALS( xdebug)
 
@@ -121,19 +100,8 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 	xdebug_str str = {0, 0, NULL};
 	char *tmp_value;
 
-<<<<<<< HEAD
-	if (XG(trace_format) == 2) {//HTML
-		return xdstrdup("");
-	} else if (XG(trace_format) == 1) { //Computerized
-		xdebug_str_addl(&str, "\t", 1, 0);
-		tmp_value = xdebug_get_zval_value(retval, 0, NULL);
-		if (tmp_value) {
-			xdebug_str_add(&str, tmp_value, 1);
-		}
-=======
 	if (XG(trace_format) == 2 || XG(trace_format) == 1) {//HTML
 		return xdstrdup("");
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	} else if(XG(trace_format == 11)) {//JSON
 
 		xdebug_str_add(&str, "\n{\"aid\":", 0);
@@ -156,11 +124,7 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 		xdebug_str_free(&str);
 		return xdstrdup("");
 	} else if (XG(trace_format) == 0) { //Human readable
-<<<<<<< HEAD
-		xdebug_str_addl(&str, "                    ", 20, 0);
-=======
 			xdebug_str_addl(&str, "                    ", 20, 0);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		if (XG(show_mem_delta)) {
 			xdebug_str_addl(&str, "        ", 8, 0);
 		}
@@ -173,13 +137,7 @@ char* xdebug_return_trace_stack_retval(function_stack_entry* i, zval* retval TSR
 		if (tmp_value) {
 			xdebug_str_add(&str, tmp_value, 1);
 		}
-<<<<<<< HEAD
-	}
-	if((XG(trace_format)!= 11)) {
-		xdebug_str_addl(&str, "\n", 1, 0);
-=======
 		xdebug_str_addl(&str, "\n", 2, 0);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	}
 	return str.d;
 }
@@ -416,15 +374,9 @@ static char* return_trace_stack_frame_begin(function_stack_entry* i, int fnr TSR
 		case 0:
 		return return_trace_stack_frame_begin_normal(i TSRMLS_CC);
 		case 1:
-<<<<<<< HEAD
-		return return_trace_stack_frame_begin_computerized(i, fnr);
-		case 11:
-		return return_trace_stack_frame_begin_json(i, fnr);
-=======
 			return return_trace_stack_frame_begin_computerized(i, fnr);
 		case 11:
 			return return_trace_stack_frame_begin_json(i, fnr);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		case 2:
 		return return_trace_stack_frame_begin_html(i, fnr TSRMLS_CC);
 		default:
@@ -436,15 +388,9 @@ static char* return_trace_stack_frame_end(function_stack_entry* i, int fnr TSRML
 {
 	switch (XG(trace_format)) {
 		case 1:
-<<<<<<< HEAD
-		return return_trace_stack_frame_end_computerized(i, fnr);
-		case 11:
-		return return_trace_stack_frame_end_json(i, fnr);
-=======
 			return return_trace_stack_frame_end_computerized(i, fnr);
 		case 11:
 			return return_trace_stack_frame_end_json(i, fnr);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		default:
 		return xdstrdup("");
 	}
@@ -454,11 +400,7 @@ PHP_FUNCTION( xdebug_start_trace) {
 	char *fname = NULL;
 	int fname_len = 0;
 	char *trace_fname;
-<<<<<<< HEAD
-	long options = 0;
-=======
 	long  options = XG(trace_options);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	if (XG(do_trace) == 0) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|sl", &fname, &fname_len, &options) == FAILURE) {
@@ -489,10 +431,7 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	char *filename_data;
 	char *tmp_fname = NULL;
 	char *tmp_fdname = NULL;
-<<<<<<< HEAD
-=======
 	char *filename_data;
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	if (fname && strlen(fname)) {
 		filename = xdstrdup(fname);
@@ -517,15 +456,9 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 	if (options & XDEBUG_TRACE_OPTION_HTML) {
 		XG(trace_format) = 2;
 	}
-<<<<<<< HEAD
-	if(XG(trace_format) == 11 || XG(trace_format) == 23) {
-		filename_data = xdebug_sprintf("%s_data",fname);
-
-=======
 	if(XG(trace_format) == 11) {
 		filename_data = xdebug_sprintf("%s_data",filename);
 		zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		if (options & XDEBUG_TRACE_OPTION_APPEND) {
 			XG(tracedata_file) = xdebug_fopen(filename_data, "a", "xt", (char**) &tmp_fdname);
 		} else {
@@ -533,23 +466,6 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 		}
 		if(XG(tracedata_file)) {
 			XG(tracedatafile_name) = tmp_fdname;
-<<<<<<< HEAD
-			if(XG(trace_format) == 23){
-				fputc((int)0xAC,XG(tracedata_file));
-				fputc((int)0xED,XG(tracedata_file));
-				fputc((int)0x00,XG(tracedata_file));
-				fputc((int)0x05,XG(tracedata_file));
-				fflush(XG(tracedata_file));
-			}
-		}
-	}
-	if (XG(trace_file)) {
-		if (XG(trace_format) == 1||XG(trace_format) == 11 || XG(trace_format) == 23) {
-			fprintf(XG(trace_file), "Version: %s\n", XDEBUG_VERSION);
-			fprintf(XG(trace_file), "File format: %lu\n", XG(trace_format)+1);
-		}
-		if (XG(trace_format) == 0 || XG(trace_format) == 1 || XG(trace_format) == 11 || XG(trace_format) == 23) {
-=======
 		}
 		XG(collect_return)=1;
 		XG(collect_assignments)=1;
@@ -562,7 +478,6 @@ char* xdebug_start_trace(char* fname, long options TSRMLS_DC)
 			fprintf(XG(trace_file), "File format: %lu\n", XG(trace_format)+1);
 		}
 		if (XG(trace_format) == 0 || XG(trace_format) == 1 || XG(trace_format) == 11) {
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 			str_time = xdebug_get_time();
 			fprintf(XG(trace_file), "TRACE START [%s]\n", str_time);
 			xdfree(str_time);
@@ -606,11 +521,7 @@ void xdebug_stop_trace( TSRMLS_D) {
 			fprintf(XG(trace_file), "</table>\n");
 		}
 
-<<<<<<< HEAD
-		if(XG(trace_format)==11 || XG(trace_format)==23){
-=======
 		if(XG(trace_format)==11){
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 			fclose(XG(tracedata_file));
 			XG(tracedata_file)= NULL;
 		}

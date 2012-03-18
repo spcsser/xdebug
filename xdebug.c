@@ -560,11 +560,7 @@ PHP_MINIT_FUNCTION(xdebug)
 
 	/* initialize aggregate call information hash */
 	zend_hash_init_ex(&XG(aggr_calls), 50, NULL, (dtor_func_t) xdebug_profile_aggr_call_entry_dtor, 1, 0);
-<<<<<<< HEAD
 	zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
-=======
-	//zend_hash_init_ex(&XG(known_values), 65536, NULL, (dtor_func_t) xdebug_odb_call_entry_dtor, 1, 0);
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	/* Redirect compile and execute functions to our own */
 	old_compile_file = zend_compile_file;
@@ -713,13 +709,9 @@ PHP_MSHUTDOWN_FUNCTION(xdebug)
 	zend_error_cb = xdebug_old_error_cb;
 
 	zend_hash_destroy(&XG(aggr_calls));
-<<<<<<< HEAD
-	zend_hash_destroy(&XG(known_values));
-=======
 	if(&XG(known_values)){
 		zend_hash_destroy(&XG(known_values));
 	}
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 #ifdef ZTS
 	ts_free_id(xdebug_globals_id);
@@ -1834,11 +1826,7 @@ PHP_FUNCTION(xdebug_clear_aggr_profiling_data)
 	}
 
 	zend_hash_clean(&XG(aggr_calls));
-<<<<<<< HEAD
-	zend_hash_clean(&XG(known_values));
-=======
 	//zend_hash_clean(&XG(known_values));
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	RETURN_TRUE;
 }
@@ -1882,11 +1870,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 		xdebug_count_line(file, lineno, 0, 0 TSRMLS_CC);
 	}
 
-<<<<<<< HEAD
-	if (XG(remote_enabled) || XG(do_trace)) {
-=======
 	if (XG(remote_enabled) || (XG(do_trace) && XG(trace_file) && XG(trace_format)==11)) {
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 		if (XG(context).do_break) {
 			XG(context).do_break = 0;
@@ -1906,11 +1890,7 @@ ZEND_DLEXPORT void xdebug_statement_call(zend_op_array *op_array)
 			level = 0;
 		}
 		
-<<<<<<< HEAD
-		if(XG(trace_format)==11){
-=======
 		if(XG(do_trace) && XG(trace_file) && XG(trace_format)==11){
->>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 			//xdebug_odb_handle_statement(op_array, file, lineno);
 		}
 
