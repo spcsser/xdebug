@@ -1,7 +1,5 @@
 --TEST--
-Test for bug #515: Dead Code Analysis for code coverage messed up with ticks.
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
+Test for bug #515: Dead Code Analysis for code coverage messed up with ticks
 --INI--
 xdebug.default_enable=1
 xdebug.auto_trace=0
@@ -17,6 +15,7 @@ xdebug.show_mem_delta=0
 xdebug.trace_format=0
 xdebug.extended_info=1
 xdebug.coverage_enable=1
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 	xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);

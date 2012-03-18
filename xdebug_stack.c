@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
+   | Copyright (c) 2002-2012 Derick Rethans                               |
    +----------------------------------------------------------------------+
    | This source file is subject to version 1.0 of the Xdebug license,    |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -24,13 +24,14 @@
 #include "xdebug_str.h"
 #include "xdebug_superglobals.h"
 #include "xdebug_var.h"
-#include "php_ini.h"
+#include "xdebug_odb.h"
+#include "ext/standard/html.h"
 
 #include "main/php_ini.h"
 
 ZEND_EXTERN_MODULE_GLOBALS(xdebug)
 
-static char* text_formats[10] = {
+static char* text_formats[11] = {
 	"\n",
 	"%s: %s in %s on line %d\n",
 	"\nCall Stack:\n",
@@ -44,11 +45,12 @@ static char* text_formats[10] = {
 	"\n\nVariables in local scope (#%d):\n",
 	"\n",
 	"  $%s = %s\n",
-	"  $%s = *uninitialized*\n"
+	"  $%s = *uninitialized*\n",
+	"SCREAM:  Error suppression ignored for\n"
 };
 
 #ifndef PHP_WIN32
-static char* ansi_formats[10] = {
+static char* ansi_formats[11] = {
 	"\n",
 	"\e[1m\e[31m%s\e[0m: %s\e[22m in \e[31m%s\e[0m on line \e[32m%d\e[0m\e[22m\n",
 	"\n\e[1mCall Stack:\e[22m\n",
@@ -62,12 +64,13 @@ static char* ansi_formats[10] = {
 	"\n\nVariables in local scope (#%d):\n",
 	"\n",
 	"  $%s = %s\n",
-	"  $%s = *uninitialized*\n"
+	"  $%s = *uninitialized*\n",
+	"\e[1m\e[31mSCREAM\e[0m:  Error suppression ignored for\n"
 };
 #endif
 
-static char* html_formats[12] = {
-	"<br />\n<font size='1'><table class='xdebug-error' dir='ltr' border='1' cellspacing='0' cellpadding='1'>\n",
+static char* html_formats[13] = {
+	"<br />\n<font size='1'><table class='xdebug-error xe-%s%s' dir='ltr' border='1' cellspacing='0' cellpadding='1'>\n",
 	"<tr><th align='left' bgcolor='#f57900' colspan=\"5\"><span style='background-color: #cc0000; color: #fce94f; font-size: x-large;'>( ! )</span> %s: %s in %s on line <i>%d</i></th></tr>\n",
 #if HAVE_PHP_MEMORY_USAGE
 	"<tr><th align='left' bgcolor='#e9b96e' colspan='5'>Call Stack</th></tr>\n<tr><th align='center' bgcolor='#eeeeec'>#</th><th align='left' bgcolor='#eeeeec'>Time</th><th align='left' bgcolor='#eeeeec'>Memory</th><th align='left' bgcolor='#eeeeec'>Function</th><th align='left' bgcolor='#eeeeec'>Location</th></tr>\n",
@@ -87,7 +90,8 @@ static char* html_formats[12] = {
 	"<tr><td colspan='2' align='right' bgcolor='#eeeeec' valign='top'><pre>$%s&nbsp;=</pre></td><td colspan='3' bgcolor='#eeeeec'>%s</td></tr>\n",
 	"<tr><td colspan='2' align='right' bgcolor='#eeeeec' valign='top'><pre>$%s&nbsp;=</pre></td><td colspan='3' bgcolor='#eeeeec' valign='top'><i>Undefined</i></td></tr>\n",
 	" )</td><td title='%s' bgcolor='#eeeeec'><a style='color: black' href='%s'>..%s<b>:</b>%d</a></td></tr>\n",
-	"<tr><th align='left' bgcolor='#f57900' colspan=\"5\"><span style='background-color: #cc0000; color: #fce94f; font-size: x-large;'>( ! )</span> %s: %s in <a style='color: black' href='%s'>%s</a> on line <i>%d</i></th></tr>\n"
+	"<tr><th align='left' bgcolor='#f57900' colspan=\"5\"><span style='background-color: #cc0000; color: #fce94f; font-size: x-large;'>( ! )</span> %s: %s in <a style='color: black' href='%s'>%s</a> on line <i>%d</i></th></tr>\n",
+	"<tr><th align='left' bgcolor='#f57900' colspan=\"5\"><span style='background-color: #cc0000; color: #fce94f; font-size: x-large;'>( ! )</span> SCREAM: Error suppression ignored for</th></tr>\n"
 };
 
 static char** select_formats(int html TSRMLS_DC) {
@@ -95,7 +99,7 @@ static char** select_formats(int html TSRMLS_DC) {
 		return html_formats;
 	} 
 #ifndef PHP_WIN32
-	else if (XG(cli_color) == 1 && xdebug_is_output_tty(TSRMLS_C)) {
+	else if ((XG(cli_color) == 1 && xdebug_is_output_tty(TSRMLS_C)) || (XG(cli_color) == 2)) {
 		return ansi_formats;
 	}
 #endif
@@ -246,26 +250,50 @@ static int create_file_link(char **filename, const char *error_filename, int err
 	return fname.l;
 }
 
-void xdebug_append_error_head(xdebug_str *str, int html TSRMLS_DC)
+void xdebug_append_error_head(xdebug_str *str, int html, char *error_type_str TSRMLS_DC)
 {
 	char **formats = select_formats(html TSRMLS_CC);
- 
-	xdebug_str_add(str, formats[0], 0);
+
+	if (html) {
+		xdebug_str_add(str, xdebug_sprintf(formats[0], error_type_str, XG(in_at) ? " xe-scream" : ""), 1);
+		if (XG(in_at)) {
+			xdebug_str_add(str, formats[12], 0);
+		}
+	} else {
+		xdebug_str_add(str, formats[0], 0);
+		if (XG(in_at)) {
+			xdebug_str_add(str, formats[10], 0);
+		}
+	}
 }
 
 void xdebug_append_error_description(xdebug_str *str, int html, const char *error_type_str, char *buffer, const char *error_filename, const int error_lineno TSRMLS_DC)
 {
 	char **formats = select_formats(html TSRMLS_CC);
+	char *escaped;
+#if PHP_VERSION_ID >= 50400
+	size_t newlen;
+#else
+	int    newlen;
+#endif
+
+	if (html) {
+		escaped = php_escape_html_entities(buffer, strlen(buffer), &newlen, 0, 0, NULL TSRMLS_CC);
+	} else {
+		escaped = estrdup(buffer);
+	}
 
 	if (strlen(XG(file_link_format)) > 0 && html) {
 		char *file_link;
 
 		create_file_link(&file_link, error_filename, error_lineno TSRMLS_CC);
-		xdebug_str_add(str, xdebug_sprintf(formats[11], error_type_str, buffer, file_link, error_filename, error_lineno), 1);
+		xdebug_str_add(str, xdebug_sprintf(formats[11], error_type_str, escaped, file_link, error_filename, error_lineno), 1);
 		xdfree(file_link);
 	} else {
-		xdebug_str_add(str, xdebug_sprintf(formats[1], error_type_str, buffer, error_filename, error_lineno), 1);
+		xdebug_str_add(str, xdebug_sprintf(formats[1], error_type_str, escaped, error_filename, error_lineno), 1);
 	}
+
+	efree(escaped);
 }
 
 void xdebug_append_printable_stack(xdebug_str *str, int html TSRMLS_DC)
@@ -423,21 +451,26 @@ void xdebug_append_error_footer(xdebug_str *str, int html TSRMLS_DC)
 	xdebug_str_add(str, formats[7], 0);
 }
 
-static char *get_printable_stack(int html, const char *error_type_str, char *buffer, const char *error_filename, const int error_lineno TSRMLS_DC)
+static char *get_printable_stack(int html, int error_type, char *buffer, const char *error_filename, const int error_lineno TSRMLS_DC)
 {
 	char *prepend_string;
 	char *append_string;
+	char *error_type_str = xdebug_error_type(error_type);
+	char *error_type_str_simple = xdebug_error_type_simple(error_type);
 	xdebug_str str = {0, 0, NULL};
 
 	prepend_string = INI_STR("error_prepend_string");
 	append_string = INI_STR("error_append_string");
 
 	xdebug_str_add(&str, prepend_string ? prepend_string : "", 0);
-	xdebug_append_error_head(&str, html TSRMLS_CC);
+	xdebug_append_error_head(&str, html, error_type_str_simple TSRMLS_CC);
 	xdebug_append_error_description(&str, html, error_type_str, buffer, error_filename, error_lineno TSRMLS_CC);
 	xdebug_append_printable_stack(&str, html TSRMLS_CC);
 	xdebug_append_error_footer(&str, html TSRMLS_CC);
 	xdebug_str_add(&str, append_string ? append_string : "", 0);
+
+	xdfree(error_type_str);
+	xdfree(error_type_str_simple);
 
 	return str.d;
 }
@@ -454,6 +487,7 @@ void xdebug_init_debugger(TSRMLS_D)
 			zend_hash_find(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER]), "REMOTE_ADDR", 12, (void**)&remote_addr);
 		}
 		if (remote_addr) {
+<<<<<<< HEAD
 			XDEBUG_LOG_PRINT(XG(remote_log_file), "I: Remote address found, connecting to %s:%lu.\n", Z_STRVAL_PP(remote_addr), XG(remote_port));
 			XG(context).socket = xdebug_create_socket(Z_STRVAL_PP(remote_addr), XG(remote_port));
 		} else {
@@ -462,6 +496,16 @@ void xdebug_init_debugger(TSRMLS_D)
 		}
 	} else {
 		XDEBUG_LOG_PRINT(XG(remote_log_file), "I: Connecting to configured address/port: %s:%lu.\n", XG(remote_host), XG(remote_port));
+=======
+			XDEBUG_LOG_PRINT(XG(remote_log_file), "I: Remote address found, connecting to %s:%ld.\n", Z_STRVAL_PP(remote_addr), XG(remote_port));
+			XG(context).socket = xdebug_create_socket(Z_STRVAL_PP(remote_addr), XG(remote_port));
+		} else {
+			XDEBUG_LOG_PRINT(XG(remote_log_file), "W: Remote address not found, connecting to configured address/port: %s:%ld. :-|\n", XG(remote_host), XG(remote_port));
+			XG(context).socket = xdebug_create_socket(XG(remote_host), XG(remote_port));
+		}
+	} else {
+		XDEBUG_LOG_PRINT(XG(remote_log_file), "I: Connecting to configured address/port: %s:%ld.\n", XG(remote_host), XG(remote_port));
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		XG(context).socket = xdebug_create_socket(XG(remote_host), XG(remote_port));
 	}
 	if (XG(context).socket >= 0) {
@@ -535,7 +579,6 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 	PG(last_error_message) = strdup(buffer);
 	PG(last_error_file) = strdup(error_filename);
 	PG(last_error_lineno) = error_lineno;
-
 #if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3) || PHP_MAJOR_VERSION >= 6
 	error_handling  = EG(error_handling);
 	exception_class = EG(exception_class);
@@ -543,6 +586,10 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 	error_handling  = PG(error_handling);
 	exception_class = PG(exception_class);
 #endif
+
+	if(XG(do_trace) && XG(trace_file) && XG(trace_format) == 11){
+		xdebug_odb_handle_error(type, error_filename, error_lineno, error_handling, error_type_str, buffer, exception_class);
+	}
 	/* according to error handling mode, suppress error, throw exception or show it */
 	if (error_handling != EH_NORMAL && EG(in_execution)) {
 		switch (type) {
@@ -601,7 +648,7 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 				strncpy(tmp_buf, buffer, p - buffer );
 
 				/* Append error */
-				xdebug_append_error_head(&str, PG(html_errors) TSRMLS_CC);
+				xdebug_append_error_head(&str, PG(html_errors), "uncaught-exception" TSRMLS_CC);
 				xdebug_append_error_description(&str, PG(html_errors), error_type_str, tmp_buf, error_filename, error_lineno TSRMLS_CC);
 				xdebug_append_printable_stack(&str, PG(html_errors) TSRMLS_CC);
 				xdebug_str_add(&str, XG(last_exception_trace), 0);
@@ -611,14 +658,17 @@ void xdebug_error_cb(int type, const char *error_filename, const uint error_line
 				xdfree(str.d);
 				free(tmp_buf);
 			} else {
-				printable_stack = get_printable_stack(PG(html_errors), error_type_str, buffer, error_filename, error_lineno TSRMLS_CC);
-				php_output_error(printable_stack TSRMLS_CC);
-				xdfree(printable_stack);
+				printable_stack = get_printable_stack(PG(html_errors), type, buffer, error_filename, error_lineno TSRMLS_CC);
+				if (XG(do_collect_errors) && (type != E_ERROR) && (type != E_COMPILE_ERROR) && (type != E_USER_ERROR)) {
+					xdebug_llist_insert_next(XG(collected_errors), XDEBUG_LLIST_TAIL(XG(collected_errors)), printable_stack);
+				} else {
+					php_output_error(printable_stack TSRMLS_CC);
+					xdfree(printable_stack);
+				}
 			}
-		}
-		if (XG(do_collect_errors)) {
+		} else if (XG(do_collect_errors)) {
 			char *printable_stack;
-			printable_stack = get_printable_stack(PG(html_errors), error_type_str, buffer, error_filename, error_lineno TSRMLS_CC);
+			printable_stack = get_printable_stack(PG(html_errors), type, buffer, error_filename, error_lineno TSRMLS_CC);
 			xdebug_llist_insert_next(XG(collected_errors), XDEBUG_LLIST_TAIL(XG(collected_errors)), printable_stack);
 		}
 	}
@@ -734,9 +784,9 @@ PHP_FUNCTION(xdebug_print_function_stack)
  
 	i = xdebug_get_stack_frame(0 TSRMLS_CC);
 	if (message) {
-		tmp = get_printable_stack(PG(html_errors), "Xdebug", message, i->filename, i->lineno TSRMLS_CC);
+		tmp = get_printable_stack(PG(html_errors), 0, message, i->filename, i->lineno TSRMLS_CC);
 	} else {
-		tmp = get_printable_stack(PG(html_errors), "Xdebug", "user triggered", i->filename, i->lineno TSRMLS_CC);
+		tmp = get_printable_stack(PG(html_errors), 0, "user triggered", i->filename, i->lineno TSRMLS_CC);
 	}
 	php_printf("%s", tmp);
 	xdfree(tmp);
@@ -751,7 +801,7 @@ PHP_FUNCTION(xdebug_get_formatted_function_stack)
 	char *tmp;
 
 	i = xdebug_get_stack_frame(0 TSRMLS_CC);
-	tmp = get_printable_stack(PG(html_errors), "Xdebug", "user triggered", i->filename, i->lineno TSRMLS_CC);
+	tmp = get_printable_stack(PG(html_errors), 0, "user triggered", i->filename, i->lineno TSRMLS_CC);
 	RETVAL_STRING(tmp, 1);
 	xdfree(tmp);
 }

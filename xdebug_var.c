@@ -1,4 +1,5 @@
 /*
+<<<<<<< HEAD
  +----------------------------------------------------------------------+
  | Xdebug                                                               |
  +----------------------------------------------------------------------+
@@ -14,6 +15,23 @@
  +----------------------------------------------------------------------+
  | Authors:  Derick Rethans <derick@xdebug.org>                         |
  +----------------------------------------------------------------------+
+=======
+   +----------------------------------------------------------------------+
+   | Xdebug                                                               |
+   +----------------------------------------------------------------------+
+   | Copyright (c) 2002-2012 Derick Rethans                               |
+   +----------------------------------------------------------------------+
+   | This source file is subject to version 1.0 of the Xdebug license,    |
+   | that is bundled with this package in the file LICENSE, and is        |
+   | available at through the world-wide-web at                           |
+   | http://xdebug.derickrethans.nl/license.php                           |
+   | If you did not receive a copy of the Xdebug license and are unable   |
+   | to obtain it through the world-wide-web, please send a note to       |
+   | xdebug@derickrethans.nl so we can mail you a copy immediately.       |
+   +----------------------------------------------------------------------+
+   | Authors:  Derick Rethans <derick@xdebug.org>                         |
+   +----------------------------------------------------------------------+
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
  */
 
 #include "php.h"
@@ -31,7 +49,57 @@
 
 ZEND_EXTERN_MODULE_GLOBALS( xdebug)
 
+<<<<<<< HEAD
 char* xdebug_error_type(int type) {
+=======
+char* xdebug_error_type_simple(int type)
+{
+	switch (type) {
+		case E_ERROR:
+		case E_CORE_ERROR:
+		case E_COMPILE_ERROR:
+		case E_USER_ERROR:
+			return xdstrdup("fatal-error");
+			break;
+#if PHP_VERSION_ID >= 50200
+		case E_RECOVERABLE_ERROR:
+			return xdstrdup("catchable-fatal-error");
+			break;
+#endif
+		case E_WARNING:
+		case E_CORE_WARNING:
+		case E_COMPILE_WARNING:
+		case E_USER_WARNING:
+			return xdstrdup("warning");
+			break;
+		case E_PARSE:
+			return xdstrdup("parse-error");
+			break;
+		case E_NOTICE:
+		case E_USER_NOTICE:
+			return xdstrdup("notice");
+			break;
+		case E_STRICT:
+			return xdstrdup("strict-standards");
+			break;
+#if PHP_VERSION_ID >= 50300
+		case E_DEPRECATED:
+		case E_USER_DEPRECATED:
+			return xdstrdup("deprecated");
+			break;
+#endif
+		case 0:
+			return xdstrdup("xdebug");
+			break;
+		default:
+			return xdstrdup("unknown-error");
+			break;
+	}
+}
+
+char* xdebug_error_type(int type)
+{
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	switch (type) {
 	case E_ERROR:
 	case E_CORE_ERROR:
@@ -66,9 +134,18 @@ char* xdebug_error_type(int type) {
 			return xdstrdup("Deprecated");
 			break;
 #endif
+<<<<<<< HEAD
 	default:
 		return xdstrdup("Unknown error");
 		break;
+=======
+		case 0:
+			return xdstrdup("Xdebug");
+			break;
+		default:
+			return xdstrdup("Unknown error");
+			break;
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	}
 }
 
@@ -101,6 +178,7 @@ zval *xdebug_get_zval(zend_execute_data *zdata, int node_type,
 		if (T(node->var).var.ptr) {
 			return T(node->var).var.ptr;
 #else
+<<<<<<< HEAD
 		if (T(node->u.var).var.ptr) {
 			return T(node->u.var).var.ptr;
 #endif
@@ -108,6 +186,15 @@ zval *xdebug_get_zval(zend_execute_data *zdata, int node_type,
 			fprintf(stderr, "\nIS_VAR\n");
 		}
 		break;
+=======
+			if (T(node->u.var).var.ptr) {
+				return T(node->u.var).var.ptr;
+			} else if(*T(node->u.var).var.ptr_ptr) {
+				return *T(node->u.var).var.ptr_ptr;
+#endif
+			}
+			break;
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	case IS_CV: {
 		zval **tmp;
@@ -162,10 +249,70 @@ zval* xdebug_get_php_symbol(char* name, int name_length) {
 	if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
 		return *retval;
 	}
+
+	if(EG(This)){
+		st=zend_std_get_properties(EG(This));
+		if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+                	return *retval;
+        	}
+	}
+
 	return NULL;
 }
 
+<<<<<<< HEAD
 xdebug_var_export_options* xdebug_var_export_options_from_ini( TSRMLS_D) {
+=======
+unsigned long int xdebug_get_php_symbol_table(char *name, int name_length){
+	HashTable           *st = NULL;
+        zval               **retval;
+        TSRMLS_FETCH();
+
+        st = XG(active_symbol_table);
+        if (st && st->nNumOfElements && zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+        	 return (unsigned long int) st;
+	}
+
+        st = EG(active_op_array)->static_variables;
+        if (st) {
+                if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+			 return (unsigned long int) st;
+                }
+        }
+
+        st = &EG(symbol_table);
+        if (zend_hash_find(st, name, name_length, (void **) &retval) == SUCCESS) {
+                return (unsigned long int) st;
+        }
+        return 0;
+}
+
+char* xdebug_get_property_info(char *mangled_property, int mangled_len, char **property_name, char **class_name)
+{
+	char *prop_name, *cls_name;
+
+#if PHP_VERSION_ID >= 50200
+	zend_unmangle_property_name(mangled_property, mangled_len - 1, &cls_name, &prop_name);
+#else
+	zend_unmangle_property_name(mangled_property, &cls_name, &prop_name);
+#endif
+	*property_name = prop_name;
+	*class_name = cls_name;
+	if (cls_name) {
+		if (cls_name[0] == '*') {
+			return "protected";
+		} else {
+			return "private";
+		}
+	} else {
+		return "public";
+	}
+}
+
+
+xdebug_var_export_options* xdebug_var_export_options_from_ini(TSRMLS_D)
+{
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	xdebug_var_export_options *options;
 	options = xdmalloc(sizeof(xdebug_var_export_options));
 
@@ -468,6 +615,7 @@ static void xdebug_var_synopsis(zval **struc, xdebug_str *str, int level, int de
 
 			zend_get_object_classname(*struc, &class_name, &class_name_len TSRMLS_CC);
 			xdebug_str_add(str, xdebug_sprintf("class %s", class_name), 1);
+			efree(class_name);
 			break;
 		}
 
@@ -502,37 +650,64 @@ char* xdebug_get_zval_synopsis(zval *val, int debug_zval,
 	return str.d;
 }
 
-#ifndef PHP_WIN32
 /*****************************************************************************
+<<<<<<< HEAD
  ** ANSI colored variable printing routines
  */
+=======
+** Plain text/ANSI coloured variable printing routines
+*/
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
-#define ANSI_COLOR_POINTER       "\e[0m"
-#define ANSI_COLOR_BOOL          "\e[35m"
-#define ANSI_COLOR_LONG          "\e[32m"
-#define ANSI_COLOR_NULL          "\e[34m"
-#define ANSI_COLOR_DOUBLE        "\e[33m"
-#define ANSI_COLOR_STRING        "\e[31m"
-#define ANSI_COLOR_EMPTY         "\e[30m"
-#define ANSI_COLOR_ARRAY         "\e[33m"
-#define ANSI_COLOR_OBJECT        "\e[31m"
-#define ANSI_COLOR_RESOURCE      "\e[36m"
-#define ANSI_COLOR_MODIFIER      "\e[32m"
-#define ANSI_COLOR_RESET         "\e[0m"
-#define ANSI_COLOR_BOLD          "\e[1m"
-#define ANSI_COLOR_BOLD_OFF      "\e[22m"
+#ifndef WIN32
+# define ANSI_COLOR_POINTER       (mode == 1 ? "\e[0m" : "")
+# define ANSI_COLOR_BOOL          (mode == 1 ? "\e[35m" : "")
+# define ANSI_COLOR_LONG          (mode == 1 ? "\e[32m" : "")
+# define ANSI_COLOR_NULL          (mode == 1 ? "\e[34m" : "")
+# define ANSI_COLOR_DOUBLE        (mode == 1 ? "\e[33m" : "")
+# define ANSI_COLOR_STRING        (mode == 1 ? "\e[31m" : "")
+# define ANSI_COLOR_EMPTY         (mode == 1 ? "\e[30m" : "")
+# define ANSI_COLOR_ARRAY         (mode == 1 ? "\e[33m" : "")
+# define ANSI_COLOR_OBJECT        (mode == 1 ? "\e[31m" : "")
+# define ANSI_COLOR_RESOURCE      (mode == 1 ? "\e[36m" : "")
+# define ANSI_COLOR_MODIFIER      (mode == 1 ? "\e[32m" : "")
+# define ANSI_COLOR_RESET         (mode == 1 ? "\e[0m" : "")
+# define ANSI_COLOR_BOLD          (mode == 1 ? "\e[1m" : "")
+# define ANSI_COLOR_BOLD_OFF      (mode == 1 ? "\e[22m" : "")
+#else
+# define ANSI_COLOR_POINTER      "" 
+# define ANSI_COLOR_BOOL         ""
+# define ANSI_COLOR_LONG         ""
+# define ANSI_COLOR_NULL         ""
+# define ANSI_COLOR_DOUBLE       ""
+# define ANSI_COLOR_STRING       ""
+# define ANSI_COLOR_EMPTY        ""
+# define ANSI_COLOR_ARRAY        ""
+# define ANSI_COLOR_OBJECT       ""
+# define ANSI_COLOR_RESOURCE     ""
+# define ANSI_COLOR_MODIFIER     ""
+# define ANSI_COLOR_RESET        ""
+# define ANSI_COLOR_BOLD         ""
+# define ANSI_COLOR_BOLD_OFF     ""
+#endif
 
-static int xdebug_array_element_export_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+static int xdebug_array_element_export_text_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
 {
-	int level, debug_zval;
+	int level, mode, debug_zval;
 	xdebug_str *str;
 	xdebug_var_export_options *options;
 #if !defined(PHP_VERSION_ID) || PHP_VERSION_ID < 50300
 	TSRMLS_FETCH();
 #endif
 
+<<<<<<< HEAD
 	level = va_arg(args, int);
 	str = va_arg(args, struct xdebug_str*);
+=======
+	level      = va_arg(args, int);
+	mode       = va_arg(args, int);
+	str        = va_arg(args, struct xdebug_str*);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	debug_zval = va_arg(args, int);
 	options = va_arg(args, xdebug_var_export_options*);
 
@@ -559,18 +734,18 @@ static int xdebug_array_element_export_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TSR
 			}
 			xdebug_str_add(str, "' =>\n", 0);
 		}
-		xdebug_var_export_ansi(zv, str, level + 1, debug_zval, options TSRMLS_CC);
+		xdebug_var_export_text_ansi(zv, str, mode, level + 1, debug_zval, options TSRMLS_CC);
 	}
 	if (options->runtime[level].current_element_nr == options->runtime[level].end_element_nr) {
-		xdebug_str_addl(str, "...,\n ", 6, 0);
+		xdebug_str_add(str, xdebug_sprintf("\n%*s(more elements)...\n", (level * 2), ""), 1);
 	}
 	options->runtime[level].current_element_nr++;
 	return 0;
 }
 
-static int xdebug_object_element_export_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+static int xdebug_object_element_export_text_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
 {
-	int level, debug_zval;
+	int level, mode, debug_zval;
 	xdebug_str *str;
 	xdebug_var_export_options *options;
 	char *prop_name, *class_name, *modifier;
@@ -578,8 +753,14 @@ static int xdebug_object_element_export_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TS
 	TSRMLS_FETCH();
 #endif
 
+<<<<<<< HEAD
 	level = va_arg(args, int);
 	str = va_arg(args, struct xdebug_str*);
+=======
+	level      = va_arg(args, int);
+	mode       = va_arg(args, int);
+	str        = va_arg(args, struct xdebug_str*);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	debug_zval = va_arg(args, int);
 	options = va_arg(args, xdebug_var_export_options*);
 
@@ -590,20 +771,26 @@ static int xdebug_object_element_export_ansi(zval **zv XDEBUG_ZEND_HASH_APPLY_TS
 
 		if (hash_key->nKeyLength != 0) {
 			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &class_name);
+<<<<<<< HEAD
 			xdebug_str_add(str, xdebug_sprintf("%s%s%s%s%s $%s %s=>%s",
 							ANSI_COLOR_MODIFIER, ANSI_COLOR_BOLD, modifier, ANSI_COLOR_BOLD_OFF, ANSI_COLOR_RESET,
 							prop_name, ANSI_COLOR_POINTER, ANSI_COLOR_RESET), 1);
+=======
+			xdebug_str_add(str, xdebug_sprintf("%s%s%s%s%s $%s %s=>%s\n",
+			               ANSI_COLOR_MODIFIER, ANSI_COLOR_BOLD, modifier, ANSI_COLOR_BOLD_OFF, ANSI_COLOR_RESET, 
+			               prop_name, ANSI_COLOR_POINTER, ANSI_COLOR_RESET), 1);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 		}
-		xdebug_var_export_ansi(zv, str, level + 1, debug_zval, options TSRMLS_CC);
+		xdebug_var_export_text_ansi(zv, str, mode, level + 1, debug_zval, options TSRMLS_CC);
 	}
 	if (options->runtime[level].current_element_nr == options->runtime[level].end_element_nr) {
-		xdebug_str_addl(str, "...; ", 5, 0);
+		xdebug_str_add(str, xdebug_sprintf("\n%*s(more elements)...\n", (level * 2), ""), 1);
 	}
 	options->runtime[level].current_element_nr++;
 	return 0;
 }
 
-void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
+void xdebug_var_export_text_ansi(zval **struc, xdebug_str *str, int mode, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
 {
 	HashTable *myht;
 	char* tmp_str;
@@ -636,6 +823,7 @@ void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_
 		break;
 
 		case IS_STRING:
+<<<<<<< HEAD
 		tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "'\\\0..\37", 6 TSRMLS_CC);
 		if (options->no_decoration) {
 			xdebug_str_add(str, tmp_str, 0);
@@ -663,6 +851,38 @@ void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_
 				options->runtime[level].end_element_nr = options->max_children;
 
 				zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_array_element_export_ansi, 4, level, str, debug_zval, options);
+=======
+			tmp_str = php_addcslashes(Z_STRVAL_PP(struc), Z_STRLEN_PP(struc), &tmp_len, 0, "'\\\0..\37", 6 TSRMLS_CC);
+			if (options->no_decoration) {
+				xdebug_str_add(str, tmp_str, 0);
+			} else if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
+				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) \"%s%s%s\"", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
+							ANSI_COLOR_LONG, Z_STRLEN_PP(struc), ANSI_COLOR_RESET,
+							ANSI_COLOR_STRING, tmp_str, ANSI_COLOR_RESET), 1);
+			} else {
+				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) \"%s", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
+							ANSI_COLOR_LONG, Z_STRLEN_PP(struc), ANSI_COLOR_RESET, ANSI_COLOR_STRING), 1);
+				xdebug_str_addl(str, tmp_str, options->max_data, 0);
+				xdebug_str_add(str, xdebug_sprintf("%s\"...", ANSI_COLOR_RESET), 1);
+			}
+			efree(tmp_str);
+			break;
+
+		case IS_ARRAY:
+			myht = Z_ARRVAL_PP(struc);
+			if (myht->nApplyCount < 1) {
+				xdebug_str_add(str, xdebug_sprintf("%sarray%s(%s%d%s) {\n", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, ANSI_COLOR_LONG, myht->nNumOfElements, ANSI_COLOR_RESET), 1);
+				if (level <= options->max_depth) {
+					options->runtime[level].current_element_nr = 0;
+					options->runtime[level].start_element_nr = 0;
+					options->runtime[level].end_element_nr = options->max_children;
+
+					zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_array_element_export_text_ansi, 5, level, mode, str, debug_zval, options);
+				} else {
+					xdebug_str_add(str, xdebug_sprintf("%*s...\n", (level * 2), ""), 1);
+				}
+				xdebug_str_add(str, xdebug_sprintf("%*s}", (level * 2) - 2 , ""), 1);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 			} else {
 				xdebug_str_addl(str, "...", 3, 0);
 			}
@@ -689,9 +909,17 @@ void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_
 				options->runtime[level].start_element_nr = 0;
 				options->runtime[level].end_element_nr = options->max_children;
 
+<<<<<<< HEAD
 				zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_ansi, 4, level, str, debug_zval, options);
+=======
+					zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_text_ansi, 5, level, mode, str, debug_zval, options);
+				} else {
+					xdebug_str_add(str, xdebug_sprintf("%*s...\n", (level * 2), ""), 1);
+				}
+				xdebug_str_add(str, xdebug_sprintf("%*s}", (level * 2) - 2, ""), 1);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 			} else {
-				xdebug_str_addl(str, "...", 3, 0);
+				xdebug_str_add(str, xdebug_sprintf("%*s...\n", (level * 2), ""), 1);
 			}
 			xdebug_str_add(str, xdebug_sprintf("%*s}", (level * 2) - 2, ""), 1);
 		} else {
@@ -716,7 +944,7 @@ void xdebug_var_export_ansi(zval **struc, xdebug_str *str, int level, int debug_
 	xdebug_str_addl(str, "\n", 1, 0);
 }
 
-char* xdebug_get_zval_value_ansi(zval *val, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
+char* xdebug_get_zval_value_text_ansi(zval *val, int mode, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
 {
 	xdebug_str str = {0, 0, NULL};
 	int default_options = 0;
@@ -726,7 +954,7 @@ char* xdebug_get_zval_value_ansi(zval *val, int debug_zval, xdebug_var_export_op
 		default_options = 1;
 	}
 
-	xdebug_var_export_ansi(&val, (xdebug_str*) &str, 1, debug_zval, options TSRMLS_CC);
+	xdebug_var_export_text_ansi(&val, (xdebug_str*) &str, mode, 1, debug_zval, options TSRMLS_CC);
 
 	if (default_options) {
 		xdfree(options->runtime);
@@ -736,7 +964,7 @@ char* xdebug_get_zval_value_ansi(zval *val, int debug_zval, xdebug_var_export_op
 	return str.d;
 }
 
-static void xdebug_var_synopsis_ansi(zval **struc, xdebug_str *str, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
+static void xdebug_var_synopsis_text_ansi(zval **struc, xdebug_str *str, int mode, int level, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
 {
 	HashTable *myht;
 
@@ -791,7 +1019,7 @@ static void xdebug_var_synopsis_ansi(zval **struc, xdebug_str *str, int level, i
 	}
 }
 
-char* xdebug_get_zval_synopsis_ansi(zval *val, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
+char* xdebug_get_zval_synopsis_text_ansi(zval *val, int mode, int debug_zval, xdebug_var_export_options *options TSRMLS_DC)
 {
 	xdebug_str str = {0, 0, NULL};
 	int default_options = 0;
@@ -801,7 +1029,7 @@ char* xdebug_get_zval_synopsis_ansi(zval *val, int debug_zval, xdebug_var_export
 		default_options = 1;
 	}
 
-	xdebug_var_synopsis_ansi(&val, (xdebug_str*) &str, 1, debug_zval, options TSRMLS_CC);
+	xdebug_var_synopsis_text_ansi(&val, (xdebug_str*) &str, mode, 1, debug_zval, options TSRMLS_CC);
 
 	if (default_options) {
 		xdfree(options->runtime);
@@ -810,11 +1038,46 @@ char* xdebug_get_zval_synopsis_ansi(zval *val, int debug_zval, xdebug_var_export
 
 	return str.d;
 }
-#endif
 
 /*****************************************************************************
  ** XML node printing routines
  */
+
+#define XDEBUG_OBJECT_ITEM_TYPE_PROPERTY        1
+#define XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY 2
+
+typedef struct
+{
+	char  type;
+	char *name;
+	int   name_len;
+	zval *zv;
+} xdebug_object_item;
+
+static void xdebug_hash_object_item_dtor(void *data)
+{
+	xdfree(data);
+}
+
+static int object_item_add_to_merged_hash(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+{
+	HashTable          *merged;
+	int                 object_type;
+	xdebug_object_item *item;
+
+	merged = va_arg(args, HashTable*);
+	object_type = va_arg(args, int);
+
+	item = xdmalloc(sizeof(xdebug_object_item));
+	item->type = object_type;
+	item->zv   = *zv;
+	item->name = hash_key->arKey;
+	item->name_len = hash_key->nKeyLength;
+
+	zend_hash_next_index_insert(merged, &item, sizeof(xdebug_object_item*), NULL);
+
+	return 0;
+}
 
 static int xdebug_array_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
 {
@@ -843,9 +1106,6 @@ static int xdebug_array_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPLY
 			name = xdstrndup(hash_key->arKey, hash_key->nKeyLength);
 			name_len = hash_key->nKeyLength - 1;
 			if (parent_name) {
-				if (parent_name[0] != '$') {
-					xdebug_str_addl(&full_name, "$", 1, 0);
-				}
 				xdebug_str_add(&full_name, parent_name, 0);
 				xdebug_str_addl(&full_name, "['", 2, 0);
 				xdebug_str_addl(&full_name, name, name_len, 0);
@@ -855,11 +1115,7 @@ static int xdebug_array_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPLY
 			name = xdebug_sprintf("%ld", hash_key->h);
 			name_len = strlen(name);
 			if (parent_name) {
-				if (parent_name[0] != '$') {
-					xdebug_str_add(&full_name, xdebug_sprintf("$%s[%s]", parent_name, name), 1);
-				} else {
-					xdebug_str_add(&full_name, xdebug_sprintf("%s[%s]", parent_name, name), 1);
-				}
+				xdebug_str_add(&full_name, xdebug_sprintf("%s[%s]", parent_name, name), 1);
 			}
 		}
 
@@ -876,7 +1132,7 @@ static int xdebug_array_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPLY
 	return 0;
 }
 
-static int xdebug_object_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+static int xdebug_object_element_export_xml_node(xdebug_object_item **item XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
 {
 	int level;
 	xdebug_xml_node *parent;
@@ -897,8 +1153,8 @@ static int xdebug_object_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPL
 	if (options->runtime[level].current_element_nr >= options->runtime[level].start_element_nr &&
 			options->runtime[level].current_element_nr < options->runtime[level].end_element_nr)
 	{
-		if (hash_key->nKeyLength != 0) {
-			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &prop_class_name);
+		if ((*item)->name_len != 0) {
+			modifier = xdebug_get_property_info((*item)->name, (*item)->name_len, &prop_name, &prop_class_name);
 			node = xdebug_xml_node_init("property");
 			if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
 				xdebug_xml_add_attribute_ex(node, "name", xdstrdup(prop_name), 0, 1);
@@ -908,31 +1164,106 @@ static int xdebug_object_element_export_xml_node(zval **zv XDEBUG_ZEND_HASH_APPL
 
 			if (parent_name) {
 				if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
-					if (parent_name[0] != '$') {
-						full_name = xdebug_sprintf("$%s->%s", parent_name, prop_name);
-					} else {
-						full_name = xdebug_sprintf("%s->%s", parent_name, prop_name);
-					}
+					full_name = xdebug_sprintf("%s%s%s", parent_name, (*item)->type == XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY ? "::" : "->", prop_name);
 				} else {
-					if (parent_name[0] != '$') {
-						full_name = xdebug_sprintf("$%s->*%s*%s", parent_name, prop_class_name, prop_name);
-					} else {
-						full_name = xdebug_sprintf("%s->*%s*%s", parent_name, prop_class_name, prop_name);
-					}
+					full_name = xdebug_sprintf("%s%s*%s*%s", parent_name, (*item)->type == XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY ? "::" : "->", prop_class_name, prop_name);
 				}
 				xdebug_xml_add_attribute_ex(node, "fullname", full_name, 0, 1);
 			}
-			xdebug_xml_add_attribute(node, "facet", modifier);
+			xdebug_xml_add_attribute_ex(node, "facet", xdebug_sprintf("%s%s", (*item)->type == XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY ? "static " : "", modifier), 0, 1);
 
-			xdebug_xml_add_attribute_ex(node, "address", xdebug_sprintf("%ld", (long) *zv), 0, 1);
+			xdebug_xml_add_attribute_ex(node, "address", xdebug_sprintf("%ld", (long) (*item)->zv), 0, 1);
 
 			xdebug_xml_add_child(parent, node);
 
-			xdebug_var_export_xml_node(zv, full_name, node, options, level + 1 TSRMLS_CC);
+			xdebug_var_export_xml_node(&((*item)->zv), full_name, node, options, level + 1 TSRMLS_CC);
 		}
 	}
 	options->runtime[level].current_element_nr++;
 	return 0;
+}
+
+static char *prepare_variable_name(char *name)
+{
+	char *tmp_name;
+
+	tmp_name = xdebug_sprintf("%s%s", (name[0] == '$' || name[0] == ':') ? "" : "$", name);
+	if (tmp_name[strlen(tmp_name) - 2] == ':' && tmp_name[strlen(tmp_name) - 1] == ':') {
+		tmp_name[strlen(tmp_name) - 2] = '\0';
+	}
+	return tmp_name;
+}
+
+void xdebug_attach_uninitialized_var(xdebug_xml_node *node, char *name)
+{
+	xdebug_xml_node *contents = NULL;
+	char            *tmp_name;
+
+	contents = xdebug_xml_node_init("property");
+
+	tmp_name = prepare_variable_name(name);
+	xdebug_xml_add_attribute_ex(contents, "name", xdstrdup(tmp_name), 0, 1);
+	xdebug_xml_add_attribute_ex(contents, "fullname", xdstrdup(tmp_name), 0, 1);
+	xdfree(tmp_name);
+
+	xdebug_xml_add_attribute(contents, "type", "uninitialized");
+	xdebug_xml_add_child(node, contents);
+}
+
+void xdebug_attach_static_var_with_contents(zval **zv XDEBUG_ZEND_HASH_APPLY_TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+{
+	xdebug_xml_node    *node;
+	char               *name = hash_key->arKey;
+	char               *modifier;
+	xdebug_xml_node    *contents = NULL;
+	char               *class_name;
+	char               *prop_name, *prop_class_name;
+	xdebug_var_export_options *options;
+#if !defined(PHP_VERSION_ID) || PHP_VERSION_ID < 50300
+	TSRMLS_FETCH();
+#endif
+
+	node = va_arg(args, xdebug_xml_node *);
+	options = va_arg(args, xdebug_var_export_options *);
+	class_name = va_arg(args, char *);
+
+	modifier = xdebug_get_property_info(name, hash_key->nKeyLength, &prop_name, &prop_class_name);
+
+	if (strcmp(modifier, "private") != 0 || strcmp(class_name, prop_class_name) == 0) {
+		contents = xdebug_get_zval_value_xml_node_ex(prop_name, *zv, XDEBUG_VAR_TYPE_STATIC, options TSRMLS_CC);
+	} else{
+		char *priv_name = xdebug_sprintf("*%s*%s", prop_class_name, prop_name);
+		contents = xdebug_get_zval_value_xml_node_ex(priv_name, *zv, XDEBUG_VAR_TYPE_STATIC, options TSRMLS_CC);
+		xdfree(priv_name);
+	}
+
+	if (contents) {
+		xdebug_xml_add_attribute_ex(contents, "facet", xdebug_sprintf("static %s", modifier), 0, 1);
+		xdebug_xml_add_child(node, contents);
+	} else {
+		xdebug_attach_uninitialized_var(node, name);
+	}
+}
+
+int xdebug_attach_static_vars(xdebug_xml_node *node, xdebug_var_export_options *options, zend_class_entry *ce TSRMLS_DC)
+{
+#if PHP_VERSION_ID >= 50400
+	HashTable        *static_members = &ce->properties_info;
+#else
+	HashTable        *static_members = CE_STATIC_MEMBERS(ce);
+#endif
+	xdebug_xml_node  *static_container;
+
+	static_container = xdebug_xml_node_init("property");
+	xdebug_xml_add_attribute(static_container, "name", "::");
+	xdebug_xml_add_attribute(static_container, "fullname", "::");
+	xdebug_xml_add_attribute(static_container, "type", "object");
+	xdebug_xml_add_attribute_ex(static_container, "classname", xdstrdup(ce->name), 0, 1);
+	xdebug_xml_add_attribute(static_container, "children", static_members->nNumOfElements > 0 ? "1" : "0");
+	xdebug_xml_add_attribute_ex(static_container, "numchildren", xdebug_sprintf("%d", zend_hash_num_elements(static_members)), 0, 1);
+
+	zend_hash_apply_with_arguments(static_members XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_attach_static_var_with_contents, 3, static_container, options, ce->name); 
+	xdebug_xml_add_child(node, static_container);
 }
 
 void xdebug_var_export_xml_node(zval **struc, char *name, xdebug_xml_node *node, xdebug_var_export_options *options, int level TSRMLS_DC)
@@ -1022,9 +1353,68 @@ void xdebug_var_export_xml_node(zval **struc, char *name, xdebug_xml_node *node,
 			} else {
 				xdebug_xml_add_attribute(node, "recursive", "1");
 			}
+<<<<<<< HEAD
 		}
 		efree(class_name);
 		break;
+=======
+			break;
+
+		case IS_OBJECT: {
+			HashTable *merged_hash;
+			zend_class_entry *ce;
+#if PHP_VERSION_ID >= 50400
+			int is_temp;
+#endif
+
+			ALLOC_HASHTABLE(merged_hash);
+			zend_hash_init(merged_hash, 128, NULL, NULL, 0);
+
+			zend_get_object_classname(*struc, &class_name, &class_name_len TSRMLS_CC);
+			ce = zend_fetch_class(class_name, strlen(class_name), ZEND_FETCH_CLASS_DEFAULT TSRMLS_CC);
+
+#if PHP_VERSION_ID >= 50400
+			zend_hash_apply_with_arguments(Z_OBJDEBUG_PP(struc, is_temp) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, ce);
+#else
+			/* Adding static properties */
+			if (CE_STATIC_MEMBERS(ce)) {
+				zend_hash_apply_with_arguments(CE_STATIC_MEMBERS(ce) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, (int) XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY);
+			}
+
+			/* Adding normal properties */
+			myht = Z_OBJPROP_PP(struc);
+			if (myht) {
+				zend_hash_apply_with_arguments(myht XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, (int) XDEBUG_OBJECT_ITEM_TYPE_PROPERTY);
+			}
+#endif
+
+			xdebug_xml_add_attribute(node, "type", "object");
+			xdebug_xml_add_attribute_ex(node, "classname", xdstrdup(class_name), 0, 1);
+			xdebug_xml_add_attribute(node, "children", merged_hash->nNumOfElements ? "1" : "0");
+
+				if (merged_hash->nApplyCount < 1) {
+					xdebug_xml_add_attribute_ex(node, "numchildren", xdebug_sprintf("%d", zend_hash_num_elements(merged_hash)), 0, 1);
+					if (level < options->max_depth) {
+						xdebug_xml_add_attribute_ex(node, "page", xdebug_sprintf("%d", options->runtime[level].page), 0, 1);
+						xdebug_xml_add_attribute_ex(node, "pagesize", xdebug_sprintf("%d", options->max_children), 0, 1);
+						options->runtime[level].current_element_nr = 0;
+						if (level == 0) {
+							options->runtime[level].start_element_nr = options->max_children * options->runtime[level].page;
+							options->runtime[level].end_element_nr = options->max_children * (options->runtime[level].page + 1);
+						} else {
+							options->runtime[level].start_element_nr = 0;
+							options->runtime[level].end_element_nr = options->max_children;
+						}
+						zend_hash_apply_with_arguments(merged_hash XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) xdebug_object_element_export_xml_node, 5, level, node, name, options, class_name);
+					}
+//				} else {
+//					xdebug_xml_add_attribute(node, "recursive", "1");
+//				}
+			}
+			efree(class_name);
+			break;
+		}
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 		case IS_RESOURCE: {
 			char *type_name;
@@ -1041,25 +1431,45 @@ void xdebug_var_export_xml_node(zval **struc, char *name, xdebug_xml_node *node,
 	}
 }
 
+<<<<<<< HEAD
 xdebug_xml_node* xdebug_get_zval_value_xml_node(char *name, zval *val,
 		xdebug_var_export_options *options) {
+=======
+xdebug_xml_node* xdebug_get_zval_value_xml_node_ex(char *name, zval *val, int var_type, xdebug_var_export_options *options TSRMLS_DC)
+{
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 	xdebug_xml_node *node;
+	char *short_name = NULL;
 	char *full_name = NULL;
-	TSRMLS_FETCH();
 
 	node = xdebug_xml_node_init("property");
 	if (name) {
-		if (name[0] != '$') {
-			full_name = xdebug_sprintf("$%s", name);
-		} else {
-			full_name = xdstrdup(name);
+		switch (var_type) {
+			case XDEBUG_VAR_TYPE_NORMAL: {
+				char *tmp_name;
+
+				tmp_name = prepare_variable_name(name);
+				short_name = xdstrdup(tmp_name);
+				full_name = xdstrdup(tmp_name);
+				xdfree(tmp_name);
+			} break;
+			case XDEBUG_VAR_TYPE_STATIC:
+				short_name = xdebug_sprintf("::%s", name);
+				full_name =  xdebug_sprintf("::%s", name);
+				break;
 		}
-		xdebug_xml_add_attribute_ex(node, "name", xdstrdup(name), 0, 1);
+
+		xdebug_xml_add_attribute_ex(node, "name", short_name, 0, 1);
 		xdebug_xml_add_attribute_ex(node, "fullname", full_name, 0, 1);
 	}
+<<<<<<< HEAD
 	xdebug_xml_add_attribute_ex(node, "address", xdebug_sprintf("%ld",
 			(long) val), 0, 1);
 	xdebug_var_export_xml_node(&val, name, node, options, 0 TSRMLS_CC);
+=======
+	xdebug_xml_add_attribute_ex(node, "address", xdebug_sprintf("%ld", (long) val), 0, 1);
+	xdebug_var_export_xml_node(&val, full_name, node, options, 0 TSRMLS_CC);
+>>>>>>> 74a14604a71eec67cd52f36cf5fa2bf86164950e
 
 	return node;
 }
@@ -1386,9 +1796,12 @@ char* xdebug_xmlize(char *string, int len, int *newlen) {
 		tmp2 = php_str_to_str(tmp, len, "\n", 1, "&#10;", 5, &len);
 		efree(tmp);
 
-		tmp = php_str_to_str(tmp2, len, "\0", 1, "&#0;", 4, newlen);
+		tmp = php_str_to_str(tmp2, len, "\r", 1, "&#13;", 5, &len);
 		efree(tmp2);
-		return tmp;
+
+		tmp2 = php_str_to_str(tmp, len, "\0", 1, "&#0;", 4, newlen);
+		efree(tmp);
+		return tmp2;
 	} else {
 		*newlen = len;
 		return estrdup(string);

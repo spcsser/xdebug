@@ -20,7 +20,7 @@ dbgpRun( $data, $commands );
 ?>
 --EXPECTF--
 <?xml version="1.0" encoding="iso-8859-1"?>
-<init xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug" fileuri="file:///tmp/xdebug-dbgp-test.php" language="PHP" protocol_version="1.0" appid="" idekey=""><engine version=""><![CDATA[Xdebug]]></engine><author><![CDATA[Derick Rethans]]></author><url><![CDATA[http://xdebug.org]]></url><copyright><![CDATA[Copyright (c) 2002-2011 by Derick Rethans]]></copyright></init>
+<init xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug" fileuri="file:///tmp/xdebug-dbgp-test.php" language="PHP" protocol_version="1.0" appid="" idekey=""><engine version=""><![CDATA[Xdebug]]></engine><author><![CDATA[Derick Rethans]]></author><url><![CDATA[http://xdebug.org]]></url><copyright><![CDATA[Copyright (c) 2002-%d by Derick Rethans]]></copyright></init>
 
 -> step_into -i 1
 <?xml version="1.0" encoding="iso-8859-1"?>
@@ -40,7 +40,7 @@ dbgpRun( $data, $commands );
 
 -> property_get -i 5 -n this
 <?xml version="1.0" encoding="iso-8859-1"?>
-<response xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug" command="property_get" transaction_id="5"><property name="this" fullname="$this" address="" type="object" classname="C" children="1" numchildren="3" page="0" pagesize="32"><property name="*P*private_prop" fullname="$this-&gt;*P*private_prop" facet="private" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property><property name="protected_prop" fullname="$this-&gt;protected_prop" facet="protected" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property><property name="public_prop" fullname="$this-&gt;public_prop" facet="public" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property></property></response>
+<response xmlns="urn:debugger_protocol_v1" xmlns:xdebug="http://xdebug.org/dbgp/xdebug" command="property_get" transaction_id="5"><property name="$this" fullname="$this" address="" type="object" classname="C" children="1" numchildren="3" page="0" pagesize="32"><property name="*P*private_prop" fullname="$this-&gt;*P*private_prop" facet="private" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property><property name="protected_prop" fullname="$this-&gt;protected_prop" facet="protected" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property><property name="public_prop" fullname="$this-&gt;public_prop" facet="public" address="" type="string" size="0" encoding="base64"><![CDATA[]]></property></property></response>
 
 -> property_get -i 6 -n $this
 <?xml version="1.0" encoding="iso-8859-1"?>

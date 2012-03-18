@@ -1,14 +1,12 @@
 --TEST--
-Test for segmentation fault with xdebug_get_function_stack() and collect_params=1. (ZE20)
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
-<?php if(version_compare(zend_version(), "2.0.0-dev", '<')) echo "skip Zend Engine 2.0 needed\n"; ?>
+Test for segmentation fault with xdebug_get_function_stack() and collect_params=1
 --INI--
 xdebug.enable=1
 xdebug.auto_trace=0
 xdebug.collect_params=1
 xdebug.collect_assignments=0
 xdebug.profiler_enable=0
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 function foo($s) {

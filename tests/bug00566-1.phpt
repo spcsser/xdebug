@@ -1,9 +1,10 @@
 --TEST--
-Test for bug #566: Xdebug crashes when using conditional breakpoints [1]
+Test for bug #566: Xdebug crashes when using conditional breakpoints (1)
 --INI--
 xdebug.collect_params=4
 xdebug.collect_return=1
 xdebug.collect_assignments=0
+xdebug.trace_format=0
 --FILE--
 <?php
 $tf = xdebug_start_trace('%s'. uniqid('xdt', TRUE));

@@ -1,8 +1,7 @@
 --TEST--
-Test for bug #472: Dead Code Analysis for code coverage messed up after goto.
+Test for bug #472: Dead Code Analysis for code coverage messed up after goto
 --SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
-<?php if(version_compare(phpversion(), "5.3.0", '<')) echo "skip PHP 5.3 needed\n"; ?>
+<?php if (!version_compare(phpversion(), "5.3", '>=')) echo "skip >= PHP 5.3 needed\n"; ?>
 --INI--
 xdebug.default_enable=1
 xdebug.auto_trace=0
@@ -18,6 +17,7 @@ xdebug.show_mem_delta=0
 xdebug.trace_format=0
 xdebug.extended_info=1
 xdebug.coverage_enable=1
+xdebug.overload_var_dump=0
 --FILE--
 <?php
     xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);

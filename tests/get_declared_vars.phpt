@@ -1,7 +1,5 @@
 --TEST--
 Test with xdebug_get_declared_vars()
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
 --INI--
 xdebug.default_enable=1
 xdebug.auto_trace=0
@@ -11,6 +9,7 @@ xdebug.profiler_enable=0
 xdebug.dump_globals=0
 xdebug.collect_vars=1
 xdebug.show_local_vars=0
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 	function a($a,$b) {

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
+   | Copyright (c) 2002-2012 Derick Rethans                               |
    +----------------------------------------------------------------------+
    | This source file is subject to version 1.0 of the Xdebug license,    |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -160,7 +160,7 @@ void xdebug_profiler_function_user_end(function_stack_entry *fse, zend_op_array*
 			break;
 
 		default:
-			if (op_array) {
+			if (op_array && op_array->function_name) {
 				default_lineno = op_array->line_start;
 			} else {
 				default_lineno = fse->lineno;

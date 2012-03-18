@@ -1,8 +1,5 @@
 --TEST--
-Test for bug #241: Crash in xdebug_get_function_stack().
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
-<?php if(version_compare(zend_version(), "2.0.0-dev", '<')) echo "skip Zend Engine 2 needed\n"; ?>
+Test for bug #241: Crash in xdebug_get_function_stack()
 --INI--
 xdebug.enable=1
 xdebug.auto_trace=0
@@ -12,6 +9,7 @@ xdebug.auto_profile=0
 xdebug.profiler_enable=0
 xdebug.var_display_max_depth=3
 xdebug.var_display_max_children=2
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 function error_handler($errno, $string, $file, $line, $context)

@@ -1,8 +1,5 @@
 --TEST--
-Test for bug #212: coverage coverage inaccurate.
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
-<?php if(version_compare(zend_version(), "2.0.0-dev", '<')) echo "skip Zend Engine 2 needed\n"; ?>
+Test for bug #212: coverage coverage inaccurate (2)
 --INI--
 xdebug.default_enable=1
 xdebug.auto_trace=0
@@ -17,6 +14,7 @@ xdebug.show_mem_delta=0
 xdebug.trace_format=0
 xdebug.extended_info=1
 xdebug.coverage_enable=1
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 	xdebug_start_code_coverage( XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE );

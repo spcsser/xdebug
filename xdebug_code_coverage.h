@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
+   | Copyright (c) 2002-2012 Derick Rethans                               |
    +----------------------------------------------------------------------+
    | This source file is subject to version 1.0 of the Xdebug license,    |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -61,12 +61,21 @@ XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_inc);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_inc);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_dec);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_dec);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_dec_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_dec_obj);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_concat);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_bw_or);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_bw_and);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_bw_xor);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_dim);
 XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(assign_ref);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_inc_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(pre_dec_obj);
+XDEBUG_OPCODE_OVERRIDE_ASSIGN_DECL(post_dec_obj);
 
 void xdebug_count_line(char *file, int lineno, int executable, int deadcode TSRMLS_DC);
 void xdebug_prefill_code_coverage(zend_op_array *op_array TSRMLS_DC);

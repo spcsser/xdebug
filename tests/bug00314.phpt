@@ -1,7 +1,5 @@
 --TEST--
-Test for bug #314: PHP CLI Error Logging thwarted when XDebug Loaded.
---SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
+Test for bug #314: PHP CLI Error logging thwarted when Xdebug loaded
 --INI--
 xdebug.default_enable=1
 xdebug.dump_globals=0
@@ -27,7 +25,7 @@ Call Stack:
 %w%f %w%d   2. trigger_error('Error', 512) %sbug00314.php:3
 
 FROM LOG
-[%d-%s-%d %d:%d:%d] PHP Warning:  Error in %sbug00314.php on line 3
-[%d-%s-%d %d:%d:%d] PHP Stack trace:
-[%d-%s-%d %d:%d:%d] PHP   1. {main}() %sbug00314.php:0
-[%d-%s-%d %d:%d:%d] PHP   2. trigger_error('Error', 512) %sbug00314.php:3
+[%d-%s-%d %d:%d:%d%s] PHP Warning:  Error in %sbug00314.php on line 3
+[%d-%s-%d %d:%d:%d%s] PHP Stack trace:
+[%d-%s-%d %d:%d:%d%s] PHP   1. {main}() %sbug00314.php:0
+[%d-%s-%d %d:%d:%d%s] PHP   2. trigger_error('Error', 512) %sbug00314.php:3

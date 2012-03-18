@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
+   | Copyright (c) 2002-2012 Derick Rethans                               |
    +----------------------------------------------------------------------+
    | This source file is subject to version 1.0 of the Xdebug license,    |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -20,10 +20,10 @@
 #define PHP_XDEBUG_H
 
 #define XDEBUG_NAME       "Xdebug"
-#define XDEBUG_VERSION    "2.2.0-dev"
+#define XDEBUG_VERSION    "2.2.0rc1"
 #define XDEBUG_AUTHOR     "Derick Rethans"
-#define XDEBUG_COPYRIGHT  "Copyright (c) 2002-2011 by Derick Rethans"
-#define XDEBUG_COPYRIGHT_SHORT "Copyright (c) 2002-2011"
+#define XDEBUG_COPYRIGHT  "Copyright (c) 2002-2012 by Derick Rethans"
+#define XDEBUG_COPYRIGHT_SHORT "Copyright (c) 2002-2012"
 #define XDEBUG_URL        "http://xdebug.org"
 #define XDEBUG_URL_FAQ    "http://xdebug.org/docs/faq#api"
 
@@ -33,12 +33,6 @@
 #include "xdebug_hash.h"
 #include "xdebug_llist.h"
 #include "xdebug_code_coverage.h"
-
-#if PHP_VERSION_ID >= 50399
-# define OUTPUTBUFFERING 0
-#else
-# define OUTPUTBUFFERING 1
-#endif
 
 extern zend_module_entry xdebug_module_entry;
 #define phpext_xdebug_ptr &xdebug_module_entry
@@ -170,6 +164,7 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	zend_execute_data *active_execute_data;
 	zend_op_array     *active_op_array;
 	zval              *This;
+	function_stack_entry *active_fse;
 	unsigned int  prev_memory;
 	char         *file_link_format;
 
@@ -275,12 +270,7 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 	char         *lasttransid;
 
 	/* output redirection */
-#if OUTPUTBUFFERING
-	php_output_globals stdio;
-#endif
-	int stdout_redirected;
-	int stderr_redirected;
-	int stdin_redirected;
+	int           stdout_mode;
 
 	/* aggregate profiling */
 	HashTable  aggr_calls;
@@ -288,6 +278,7 @@ ZEND_BEGIN_MODULE_GLOBALS(xdebug)
 
 	/* scream */
 	zend_bool  do_scream;
+	zend_bool  in_at;
 ZEND_END_MODULE_GLOBALS(xdebug)
 
 #ifdef ZTS

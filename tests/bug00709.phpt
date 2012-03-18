@@ -1,7 +1,7 @@
 --TEST--
-Test for bug #709: Xdebug doesn't understand E_USER_DEPRECATED.
+Test for bug #709: Xdebug doesn't understand E_USER_DEPRECATED (>= PHP 5.3)
 --SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
+<?php if (!version_compare(phpversion(), "5.3", '>=')) echo "skip >= PHP 5.3 needed\n"; ?>
 --INI--
 xdebug.default_enable=1
 xdebug.trace_format=0

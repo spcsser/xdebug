@@ -1,7 +1,7 @@
 --TEST--
-Test for bug #703: Line in heredoc marked as not executed
+Test for bug #703: Line in heredoc marked as not executed (>= PHP 5.2)
 --SKIPIF--
-<?php if (!extension_loaded("xdebug")) print "skip"; ?>
+<?php if (!version_compare(phpversion(), "5.2", '>=')) echo "skip >= PHP 5.2 needed\n"; ?>
 --INI--
 xdebug.default_enable=1
 xdebug.auto_trace=0
@@ -17,6 +17,7 @@ xdebug.show_mem_delta=0
 xdebug.trace_format=0
 xdebug.extended_info=1
 xdebug.coverage_enable=1
+xdebug.overload_var_dump=0
 --FILE--
 <?php
 	xdebug_start_code_coverage(XDEBUG_CC_UNUSED | XDEBUG_CC_DEAD_CODE);
