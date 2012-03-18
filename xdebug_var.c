@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Xdebug                                                               |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2011 Derick Rethans                               |
+   | Copyright (c) 2002-2012 Derick Rethans                               |
    +----------------------------------------------------------------------+
    | This source file is subject to version 1.0 of the Xdebug license,    |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -30,6 +30,51 @@
 #include "xdebug_xml.h"
 
 ZEND_EXTERN_MODULE_GLOBALS(xdebug)
+
+char* xdebug_error_type_simple(int type)
+{
+	switch (type) {
+		case E_ERROR:
+		case E_CORE_ERROR:
+		case E_COMPILE_ERROR:
+		case E_USER_ERROR:
+			return xdstrdup("fatal-error");
+			break;
+#if PHP_VERSION_ID >= 50200
+		case E_RECOVERABLE_ERROR:
+			return xdstrdup("catchable-fatal-error");
+			break;
+#endif
+		case E_WARNING:
+		case E_CORE_WARNING:
+		case E_COMPILE_WARNING:
+		case E_USER_WARNING:
+			return xdstrdup("warning");
+			break;
+		case E_PARSE:
+			return xdstrdup("parse-error");
+			break;
+		case E_NOTICE:
+		case E_USER_NOTICE:
+			return xdstrdup("notice");
+			break;
+		case E_STRICT:
+			return xdstrdup("strict-standards");
+			break;
+#if PHP_VERSION_ID >= 50300
+		case E_DEPRECATED:
+		case E_USER_DEPRECATED:
+			return xdstrdup("deprecated");
+			break;
+#endif
+		case 0:
+			return xdstrdup("xdebug");
+			break;
+		default:
+			return xdstrdup("unknown-error");
+			break;
+	}
+}
 
 char* xdebug_error_type(int type)
 {
@@ -67,6 +112,9 @@ char* xdebug_error_type(int type)
 			return xdstrdup("Deprecated");
 			break;
 #endif
+		case 0:
+			return xdstrdup("Xdebug");
+			break;
 		default:
 			return xdstrdup("Unknown error");
 			break;
@@ -107,8 +155,6 @@ zval *xdebug_get_zval(zend_execute_data *zdata, int node_type, XDEBUG_ZNODE *nod
 			} else if(*T(node->u.var).var.ptr_ptr) {
 				return *T(node->u.var).var.ptr_ptr;
 #endif
-			} else {
-				fprintf(stderr, "\nIS_VAR\n");
 			}
 			break;
 
@@ -662,7 +708,7 @@ static int xdebug_object_element_export_text_ansi(zval **zv XDEBUG_ZEND_HASH_APP
 
 		if (hash_key->nKeyLength != 0) {
 			modifier = xdebug_get_property_info(hash_key->arKey, hash_key->nKeyLength, &prop_name, &class_name);
-			xdebug_str_add(str, xdebug_sprintf("%s%s%s%s%s $%s %s=>%s", 
+			xdebug_str_add(str, xdebug_sprintf("%s%s%s%s%s $%s %s=>%s\n",
 			               ANSI_COLOR_MODIFIER, ANSI_COLOR_BOLD, modifier, ANSI_COLOR_BOLD_OFF, ANSI_COLOR_RESET, 
 			               prop_name, ANSI_COLOR_POINTER, ANSI_COLOR_RESET), 1);
 		}
@@ -712,14 +758,14 @@ void xdebug_var_export_text_ansi(zval **struc, xdebug_str *str, int mode, int le
 			if (options->no_decoration) {
 				xdebug_str_add(str, tmp_str, 0);
 			} else if (options->max_data == 0 || Z_STRLEN_PP(struc) <= options->max_data) {
-				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) '%s%s%s'", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
+				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) \"%s%s%s\"", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
 							ANSI_COLOR_LONG, Z_STRLEN_PP(struc), ANSI_COLOR_RESET,
 							ANSI_COLOR_STRING, tmp_str, ANSI_COLOR_RESET), 1);
 			} else {
-				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) '%s", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
+				xdebug_str_add(str, xdebug_sprintf("%sstring%s(%s%ld%s) \"%s", ANSI_COLOR_BOLD, ANSI_COLOR_BOLD_OFF, 
 							ANSI_COLOR_LONG, Z_STRLEN_PP(struc), ANSI_COLOR_RESET, ANSI_COLOR_STRING), 1);
 				xdebug_str_addl(str, tmp_str, options->max_data, 0);
-				xdebug_str_add(str, xdebug_sprintf("%s'...", ANSI_COLOR_RESET), 1);
+				xdebug_str_add(str, xdebug_sprintf("%s\"...", ANSI_COLOR_RESET), 1);
 			}
 			efree(tmp_str);
 			break;
@@ -900,7 +946,6 @@ typedef struct
 
 static void xdebug_hash_object_item_dtor(void *data)
 {
-	xdebug_object_item *item = (xdebug_object_item *) data;
 	xdfree(data);
 }
 
@@ -1061,10 +1106,12 @@ void xdebug_attach_static_var_with_contents(zval **zv XDEBUG_ZEND_HASH_APPLY_TSR
 	char               *name = hash_key->arKey;
 	char               *modifier;
 	xdebug_xml_node    *contents = NULL;
-	char               *full_name;
 	char               *class_name;
 	char               *prop_name, *prop_class_name;
 	xdebug_var_export_options *options;
+#if !defined(PHP_VERSION_ID) || PHP_VERSION_ID < 50300
+	TSRMLS_FETCH();
+#endif
 
 	node = va_arg(args, xdebug_xml_node *);
 	options = va_arg(args, xdebug_var_export_options *);
@@ -1186,7 +1233,9 @@ void xdebug_var_export_xml_node(zval **struc, char *name, xdebug_xml_node *node,
 			zend_hash_apply_with_arguments(Z_OBJDEBUG_PP(struc, is_temp) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, ce);
 #else
 			/* Adding static properties */
-			zend_hash_apply_with_arguments(CE_STATIC_MEMBERS(ce) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, (int) XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY);
+			if (CE_STATIC_MEMBERS(ce)) {
+				zend_hash_apply_with_arguments(CE_STATIC_MEMBERS(ce) XDEBUG_ZEND_HASH_APPLY_TSRMLS_CC, (apply_func_args_t) object_item_add_to_merged_hash, 2, merged_hash, (int) XDEBUG_OBJECT_ITEM_TYPE_STATIC_PROPERTY);
+			}
 
 			/* Adding normal properties */
 			myht = Z_OBJPROP_PP(struc);
@@ -1592,9 +1641,12 @@ char* xdebug_xmlize(char *string, int len, int *newlen)
 		tmp2 = php_str_to_str(tmp, len, "\n", 1, "&#10;", 5, &len);
 		efree(tmp);
 
-		tmp = php_str_to_str(tmp2, len, "\0", 1, "&#0;", 4, newlen);
+		tmp = php_str_to_str(tmp2, len, "\r", 1, "&#13;", 5, &len);
 		efree(tmp2);
-		return tmp;
+
+		tmp2 = php_str_to_str(tmp, len, "\0", 1, "&#0;", 4, newlen);
+		efree(tmp);
+		return tmp2;
 	} else {
 		*newlen = len;
 		return estrdup(string);
